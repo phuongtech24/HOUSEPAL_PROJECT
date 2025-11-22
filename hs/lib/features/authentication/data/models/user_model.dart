@@ -1,22 +1,21 @@
 import 'dart:core';
 
-class UserModel {
-  final String memberId;
-  final String name;
-  final String email;
-  final String role;
-  final String avatar;
-  final int point;
-  UserModel({
-    required this.memberId,
-    required this.name,
-    required this.email,
-    required this.role,
-    required this.avatar,
-    required this.point,
-  });
+import 'package:hs/features/authentication/domain/entities/user_entity.dart';
+
+class UserModel extends UserEntity {
+  const UserModel ({
+    required super.memberId,
+    required super.name,
+    required super.email,
+    required super.avatar,
+    required super.point,
+    required super.role,
+  }
+  );
+  
+  
   //chuyển dữ liệu thành map để lưu vào firestore
-  Map<String, dynamic> toDocument(){
+  Map<String, Object?> toDocument(){
     return {
       'memberId': memberId,
       'name':name,
@@ -26,15 +25,26 @@ class UserModel {
       'point':point,
     };
   }
-  //Giống satitc, gọi qua tên class
-  factory UserModel.fromDocument(Map<String, dynamic> doc) {
+  factory UserModel.fromEntity(UserEntity user){
     return UserModel(
-      memberId: doc['memberId'] ?? '',
-      name: doc['name'] ?? '',
-      email: doc['email'] ?? '',
-      role: doc['role'] ?? 'Member',
-      avatar: doc['avatar'] ?? '',
-      point: doc['point'] ?? 0,
+      memberId: user.memberId,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+      point: user.point,
+      role: user.role, 
+    );
+  }
+
+  // 4. Đọc từ Map (JSON) của Firebase về thành Model
+  factory UserModel.fromDocument(Map<String, Object?> doc){
+    return UserModel(
+      memberId: doc['memberId'] as String,
+      name: doc['name'] as String,
+      email: doc['email'] as String,
+      avatar: doc['avatar'] as String,
+      point: doc['point'] as int,
+      role: doc['role'] as String,
     );
   }
 }
