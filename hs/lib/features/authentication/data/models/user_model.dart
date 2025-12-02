@@ -25,17 +25,6 @@ class UserModel extends UserEntity {
       'point':point,
     };
   }
-  factory UserModel.fromEntity(UserEntity user){
-    return UserModel(
-      memberId: user.memberId,
-      name: user.name,
-      email: user.email,
-      avatar: user.avatar,
-      point: user.point,
-      role: user.role, 
-    );
-  }
-
   // 4. Đọc từ Map (JSON) của Firebase về thành Model
   factory UserModel.fromDocument(Map<String, Object?> doc){
     return UserModel(
@@ -47,4 +36,16 @@ class UserModel extends UserEntity {
       role: doc['role'] as String,
     );
   }
+  factory UserModel.fromEntity(UserEntity user){
+    return UserModel(
+      memberId: user.memberId,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+      point: user.point,
+      role: user.role, 
+    );
+  }
+
+  
 }

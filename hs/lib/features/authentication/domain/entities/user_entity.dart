@@ -30,6 +30,6 @@ static const empty = UserEntity(
   bool get isNotEmpty => this != UserEntity.empty;
 
   @override
-  // TODO: implement props
-  List<Object?> get props => throw UnimplementedError();
+  @override
+  List<Object?> get props => [memberId, name, email, avatar, point, role];
 }
