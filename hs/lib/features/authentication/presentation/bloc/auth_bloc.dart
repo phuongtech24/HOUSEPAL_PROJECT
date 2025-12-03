@@ -25,13 +25,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 				// Mock authentication - simulate network delay
 				await Future.delayed(const Duration(seconds: 1));
 				
-				// Basic validation for demo: accept email OR phone number
-				final isEmail = event.email.contains('@');
-				final isPhone = RegExp(r'^\d{9,}$').hasMatch(event.email);
-				if ((isEmail || isPhone) && event.password.length >= 6) {
+				// Basic validation for demo
+				if (event.email.contains('@') && event.password.length >= 6) {
 					emit(AuthSuccess(user: event.email));
 				} else {
-					emit(const AuthFailure(error: 'Email hoặc mật khẩu không hợp lệ. Email phải chứa "@" hoặc sử dụng số điện thoại (>=9 chữ số). Mật khẩu >= 6 ký tự.'));
+					emit(const AuthFailure(error: 'Email hoặc mật khẩu không hợp lệ'));
 				}
 			} catch (e) {
 				emit(AuthFailure(error: 'Đăng nhập thất bại: ${e.toString()}'));
@@ -49,12 +47,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 				// Mock signup - simulate network delay
 				await Future.delayed(const Duration(seconds: 1));
 				
-				final isEmail = event.email.contains('@');
-				final isPhone = RegExp(r'^\d{9,}$').hasMatch(event.email);
-				if ((isEmail || isPhone) && event.password.length >= 6) {
+				if (event.email.contains('@') && event.password.length >= 6) {
 					emit(AuthSuccess(user: event.email));
 				} else {
-					emit(const AuthFailure(error: 'Email hoặc mật khẩu không hợp lệ. Email phải chứa "@" hoặc sử dụng số điện thoại (>=9 chữ số). Mật khẩu >= 6 ký tự.'));
+					emit(const AuthFailure(error: 'Email hoặc mật khẩu không hợp lệ'));
 				}
 			} catch (e) {
 				emit(AuthFailure(error: 'Đăng ký thất bại: ${e.toString()}'));
