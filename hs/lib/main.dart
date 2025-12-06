@@ -1,26 +1,40 @@
 import 'package:flutter/material.dart';
-// import 'package:firebase_core/firebase_core.dart'; // Import Firebase
+// import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-// import 'dart:io' show Platform;
-// import 'firebase_options.dart'; // Bỏ comment dòng này sau khi chạy 'flutterfire configure'
 
-// Import các file giao diện và màu sắc bạn đã tạo
+// Import các file
 import 'core/constants/app_colors.dart';
 import 'features/authentication/presentation/pages/login_page.dart';
 import 'features/authentication/presentation/bloc/auth_bloc.dart';
 import 'features/expenses/presentation/pages/expenses_page.dart';
+// Import các trang mới tạo nếu cần dùng routes
+import 'features/expenses/presentation/pages/add_expense_page.dart';
+import 'features/expenses/presentation/pages/debt_optimization_page.dart';
 
 void main() async {
-  // Đảm bảo Flutter binding được khởi tạo trước khi gọi code native (như Firebase)
   WidgetsFlutterBinding.ensureInitialized();
-
-  // --- PHẦN KẾT NỐI FIREBASE ---
-  // Sẽ được kích hoạt sau khi cấu hình flutterfire configure
   // if (Platform.isAndroid || Platform.isIOS) {
   //   await Firebase.initializeApp();
   // }
+  runApp(const AppProvider());
+}
 
-  runApp(const MyApp());
+// 1. Tạo lớp trung gian để Cung cấp Bloc cho toàn bộ App
+class AppProvider extends StatelessWidget {
+  const AppProvider({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiBlocProvider(
+      providers: [
+        // Khởi tạo AuthBloc ở cấp cao nhất
+        BlocProvider<AuthBloc>(
+          create: (context) => AuthBloc(),
+        ),
+      ],
+      child: const MyApp(),
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -29,10 +43,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false, // Tắt chữ DEBUG ở góc phải
+      debugShowCheckedModeBanner: false,
       title: 'HousePal',
-      
-      // Thiết lập màu sắc chung cho cả app
       theme: ThemeData(
         primaryColor: AppColors.primary,
         scaffoldBackgroundColor: AppColors.background,
@@ -43,24 +55,18 @@ class MyApp extends StatelessWidget {
         ),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.white,
-          surfaceTintColor: Colors.white, // Tránh đổi màu khi scroll
+          surfaceTintColor: Colors.white,
         ),
       ),
+      
+      // 2. Home gọi trực tiếp LoginPage (Bloc đã có sẵn từ AppProvider bao ngoài)
+      home: const LoginPage(),
 
-      // --- ĐỊNH TUYẾN (NAVIGATION) ---
-      // Màn hình đầu tiên khi mở app
-      home: BlocProvider(
-        create: (context) => AuthBloc(),
-        child: const LoginPage(),
-      ),
-
-      // Định nghĩa các tên đường dẫn để chuyển trang dễ dàng
+      // 3. Định nghĩa Routes
       routes: {
-        '/login': (context) => BlocProvider(
-          create: (context) => AuthBloc(),
-          child: const LoginPage(),
-        ),
+        '/login': (context) => const LoginPage(),
         '/expenses': (context) => const ExpensesPage(),
+        '/add_expense': (context) => const AddExpensePage(),
       },
     );
   }
