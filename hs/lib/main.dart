@@ -67,6 +67,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginPage(),
         '/expenses': (context) => const ExpensesPage(),
         '/add_expense': (context) => const AddExpensePage(),
+        '/debt_optimization': (context) => const DebtOptimizationPage(),
       },
     );
   }

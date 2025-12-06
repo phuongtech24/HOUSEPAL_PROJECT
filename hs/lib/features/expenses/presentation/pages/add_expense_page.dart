@@ -438,6 +438,29 @@ class _AddExpensePageState extends State<AddExpensePage> {
           ],
         ),
       ),
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: Colors.grey,
+        showUnselectedLabels: true,
+        currentIndex: 2, // Vẫn giữ tab Quỹ chung sáng đèn
+        onTap: (index) {
+          if (index == 2) {
+             // Nếu bấm lại vào Quỹ chung thì quay về màn hình chính của Quỹ chung
+             Navigator.pop(context); 
+          } else if (index == 3) {
+             Navigator.pushReplacementNamed(context, '/bulletin_board');
+          }
+          // Xử lý các tab khác...
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: "Trang chủ"),
+          BottomNavigationBarItem(icon: Icon(Icons.cleaning_services_outlined), label: "Việc nhà"),
+          BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), activeIcon: Icon(Icons.account_balance_wallet), label: "Quỹ chung"),
+          BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: "Bảng tin"),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: "Hồ sơ"),
+        ],
+      ),
     );
   }
 
