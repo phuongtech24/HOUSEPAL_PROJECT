@@ -6,6 +6,30 @@ class DebtOptimizationPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // --- GIẢ LẬP DỮ LIỆU (Sau này sẽ lấy từ BLoC/Firebase) ---
+    // Danh sách các khoản nợ sau khi tối ưu
+    final List<Map<String, dynamic>> debtItems = [
+      {
+        "fromName": "Văn Dũng",
+        "fromAvatar": "https://i.pravatar.cc/150?img=11",
+        "toName": "Minh Tuấn",
+        "toAvatar": "https://i.pravatar.cc/150?img=13",
+        "amount": "500.000đ",
+        "description": "Gộp nợ: Văn Dũng nợ Nam Phương 500k & Nam Phương nợ Minh Tuấn 500k",
+        "isCreditor": false, // User hiện tại (Nam Phương) KHÔNG PHẢI là người nhận tiền trong giao dịch này
+      },
+      {
+        "fromName": "Minh Tuấn",
+        "fromAvatar": "https://i.pravatar.cc/150?img=13",
+        "toName": "Nam Phương", // User hiện tại
+        "toAvatar": "https://i.pravatar.cc/150?img=12",
+        "amount": "200.000đ",
+        "description": "Tiền ăn trưa hôm qua",
+        "isCreditor": true, // User hiện tại LÀ người nhận tiền
+      },
+    ];
+    // -----------------------------------------------------------
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -47,16 +71,16 @@ class DebtOptimizationPage extends StatelessWidget {
                       children: [
                         Text("Đã tối ưu công nợ !", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                         SizedBox(height: 4),
-                        Text("Số giao dịch cần thanh toán: 1 (từ 2 giao dịch ban đầu)", style: TextStyle(color: Colors.grey, fontSize: 13)),
-                        SizedBox(height: 4),
-                        Text.rich(
-                          TextSpan(
-                            children: [
-                              TextSpan(text: "Tổng số tiền phải chuyển: ", style: TextStyle(color: Colors.grey, fontSize: 13)),
-                              TextSpan(text: "500.000đ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                            ],
-                          ),
-                        ),
+                        Text("Hệ thống đã tính toán và rút gọn các khoản nợ chéo.", style: TextStyle(color: Colors.grey, fontSize: 13)),
+                        // SizedBox(height: 4),
+                        // Text.rich(
+                        //   TextSpan(
+                        //     children: [
+                        //       TextSpan(text: "Tổng số tiền phải chuyển: ", style: TextStyle(color: Colors.grey, fontSize: 13)),
+                        //       TextSpan(text: "700.000đ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        //     ],
+                        //   ),
+                        // ),
                       ],
                     ),
                   )
@@ -68,27 +92,37 @@ class DebtOptimizationPage extends StatelessWidget {
             const Text("Gợi ý thanh toán tối ưu", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
 
-            // 2. Danh sách gợi ý chuyển tiền
-            _buildDebtItem(
-              fromName: "Văn Dũng",
-              fromAvatar: "https://i.pravatar.cc/150?img=11",
-              toName: "Minh Tuấn",
-              toAvatar: "https://i.pravatar.cc/150?img=13",
-              amount: "500.000đ",
-              description: "Gộp nợ: Văn Dũng nợ Nam Phương 500k & Nam Phương nợ Minh Tuấn 500k",
+            // 2. Danh sách gợi ý chuyển tiền (Dùng ListView để hiển thị danh sách động)
+            Expanded(
+              child: ListView.builder(
+                itemCount: debtItems.length,
+                itemBuilder: (context, index) {
+                  final item = debtItems[index];
+                  return _buildDebtItem(
+                    fromName: item['fromName'],
+                    fromAvatar: item['fromAvatar'],
+                    toName: item['toName'],
+                    toAvatar: item['toAvatar'],
+                    amount: item['amount'],
+                    description: item['description'],
+                    isCreditor: item['isCreditor'], // Truyền trạng thái vào
+                  );
+                },
+              ),
             ),
           ],
         ),
       ),
-    bottomNavigationBar: BottomNavigationBar(
+      
+      // --- THANH NAVIGATION BAR ---
+      bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: Colors.grey,
         showUnselectedLabels: true,
-        currentIndex: 2, // Vẫn giữ tab Quỹ chung sáng đèn
+        currentIndex: 2, // Tab Quỹ chung
         onTap: (index) {
           if (index == 2) {
-             // Nếu bấm lại vào Quỹ chung thì quay về màn hình chính của Quỹ chung
              Navigator.pop(context); 
           } else if (index == 3) {
              Navigator.pushReplacementNamed(context, '/bulletin_board');
@@ -106,7 +140,6 @@ class DebtOptimizationPage extends StatelessWidget {
     );
   }
 
-  // Widget con hiển thị từng mục gợi ý chuyển khoản
   Widget _buildDebtItem({
     required String fromName,
     required String fromAvatar,
@@ -114,8 +147,10 @@ class DebtOptimizationPage extends StatelessWidget {
     required String toAvatar,
     required String amount,
     required String description,
+    required bool isCreditor, // Thêm tham số này
   }) {
     return Container(
+      margin: const EdgeInsets.only(bottom: 16), // Thêm margin dưới để tách các item
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -126,21 +161,13 @@ class DebtOptimizationPage extends StatelessWidget {
         children: [
           Row(
             children: [
-              // Người trả
               CircleAvatar(backgroundImage: NetworkImage(fromAvatar), radius: 24),
-              
-              // Mũi tên icon ở giữa
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 12),
-                child: Icon(Icons.currency_exchange, color: Colors.amber, size: 28),
+                child: Icon(Icons.arrow_forward, color: Colors.grey, size: 20), // Đổi icon mũi tên cho đơn giản
               ),
-              
-              // Người nhận
               CircleAvatar(backgroundImage: NetworkImage(toAvatar), radius: 24),
-              
               const SizedBox(width: 12),
-              
-              // Thông tin text
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -148,33 +175,49 @@ class DebtOptimizationPage extends StatelessWidget {
                     Row(
                       children: [
                         Text(fromName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        const Icon(Icons.arrow_right_alt, size: 16, color: Colors.grey),
+                        const SizedBox(width: 4),
+                        const Text("trả cho", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                        const SizedBox(width: 4),
                         Text(toName, style: const TextStyle(fontWeight: FontWeight.bold)),
                       ],
                     ),
-                    Text(amount, style: const TextStyle(color: AppColors.debtRed, fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text(amount, style: const TextStyle(color: AppColors.debtRed, fontWeight: FontWeight.bold, fontSize: 18)),
                     const SizedBox(height: 4),
-                    Text(description, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                    Text(description, style: const TextStyle(fontSize: 11, color: Colors.grey), maxLines: 2, overflow: TextOverflow.ellipsis),
                   ],
                 ),
               )
             ],
           ),
           const SizedBox(height: 16),
-          // Nút Thanh toán
+          
+          // --- NÚT BẤM TÙY CHỈNH THEO VAI TRÒ ---
           SizedBox(
             width: double.infinity,
-            height: 40,
-            child: ElevatedButton(
-              onPressed: () {
-                // TODO: Logic thanh toán
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              child: const Text("Thanh toán", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
+            height: 45,
+            child: isCreditor
+                ? ElevatedButton.icon( // Nút cho Người cho vay (Creditor)
+                    onPressed: () {
+                      // TODO: Logic xác nhận đã nhận tiền
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange, // Màu cam cho nút xác nhận
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    icon: const Icon(Icons.check_circle_outline, color: Colors.white),
+                    label: const Text("Xác nhận đã nhận", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  )
+                : ElevatedButton.icon( // Nút cho Người nợ (Debtor)
+                    onPressed: () {
+                      // TODO: Logic mở app ngân hàng / QR code
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary, // Màu xanh cho nút thanh toán
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    icon: const Icon(Icons.payment, color: Colors.white),
+                    label: const Text("Thanh toán ngay", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
           )
         ],
       ),
