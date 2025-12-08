@@ -369,3 +369,5 @@ class _RankingListItem extends StatelessWidget {
 }
 
 
+
+// Updated logic
