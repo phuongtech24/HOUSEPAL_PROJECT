@@ -20,3 +20,5 @@ class RankingUserModel {
     );
   }
 }
+
+// Code cleanup
