@@ -23,7 +23,9 @@ class BalanceCard extends StatelessWidget {
             children: [
               const Text("Tổng cân đối của bạn", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               GestureDetector(
-                onTap: () {},
+                onTap: () {
+                  Navigator.pushNamed(context, '/debt_optimization');
+                },
                 child: const Text("Tối ưu công nợ >", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
               )
             ],

@@ -1,47 +1,43 @@
 import 'package:flutter/material.dart';
-// import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hs/features/authentication/presentation/pages/register_page.dart' show RegisterPage;
-import 'package:hs/features/house_setup/presentation/pages/create_house_page.dart' show CreateHousePage;
-import 'package:hs/features/house_setup/presentation/pages/house_management_page.dart' show HouseManagementPage;
-import 'package:hs/features/house_setup/presentation/pages/join_house_page.dart' show JoinHousePage;
-import 'package:hs/features/house_setup/presentation/pages/welcome_page.dart' show WelcomePage;
+// import 'package:firebase_core/firebase_core.dart'; 
 
-// Import các file
 import 'core/constants/app_colors.dart';
+
+// --- 1. AUTHENTICATION (Xác thực) ---
 import 'features/authentication/presentation/pages/login_page.dart';
+import 'features/authentication/presentation/pages/register_page.dart';
 import 'features/authentication/presentation/bloc/auth_bloc.dart';
+
+// --- 2. HOUSE SETUP (Sảnh chờ & Tạo nhà) ---
+import 'features/house_setup/presentation/pages/welcome_page.dart';
+import 'features/house_setup/presentation/pages/join_house_page.dart';
+import 'features/house_setup/presentation/pages/create_house_page.dart';
+import 'features/house_setup/presentation/pages/house_management_page.dart';
+
+
+// --- 4. EXPENSES (Quỹ chung) ---
 import 'features/expenses/presentation/pages/expenses_page.dart';
-// Import các trang mới tạo nếu cần dùng routes
 import 'features/expenses/presentation/pages/add_expense_page.dart';
 import 'features/expenses/presentation/pages/debt_optimization_page.dart';
-import 'features/expenses/presentation/pages/add_expense_page.dart';
-import 'features/expenses/presentation/pages/debt_optimization_page.dart';
+import 'features/expenses/presentation/pages/expense_detail_page.dart' hide ExpensesPage; // Mới thêm
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
   // if (Platform.isAndroid || Platform.isIOS) {
   //   await Firebase.initializeApp();
   // }
-  runApp(const AppProvider());
-}
 
-// 1. Tạo lớp trung gian để Cung cấp Bloc cho toàn bộ App
-class AppProvider extends StatelessWidget {
-  const AppProvider({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MultiBlocProvider(
+  runApp(
+    MultiBlocProvider(
       providers: [
-        // Khởi tạo AuthBloc ở cấp cao nhất
-        BlocProvider<AuthBloc>(
-          create: (context) => AuthBloc(),
-        ),
+        BlocProvider<AuthBloc>(create: (context) => AuthBloc()),
       ],
       child: const MyApp(),
-    );
-  }
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -52,7 +48,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'HousePal',
-      theme: ThemeData(
+      theme: ThemeData( 
         primaryColor: AppColors.primary,
         scaffoldBackgroundColor: AppColors.background,
         useMaterial3: true,
@@ -66,28 +62,30 @@ class MyApp extends StatelessWidget {
         ),
       ),
       
-      // 2. Home gọi trực tiếp LoginPage (Bloc đã có sẵn từ AppProvider bao ngoài)
-      home: const LoginPage(),
+      // Màn hình khởi động đầu tiên
+      home: const LoginPage(), 
 
-      // 3. Định nghĩa Routes
+      // --- DANH SÁCH ROUTES TOÀN BỘ DỰ ÁN ---
       routes: {
-        // Auth
+        // --- Auth ---
         '/login': (context) => const LoginPage(),
-        '/register': (context) => const RegisterPage(), // <-- Đã thêm route này
+        '/register': (context) => const RegisterPage(),
 
-        // Expenses
+        // --- Onboarding (Chưa có nhà) ---
+        '/welcome': (context) => const WelcomePage(),
+        '/join_house': (context) => const JoinHousePage(),
+        '/create_house': (context) => const CreateHousePage(),
+
+        
+        
+        // --- Expenses ---
         '/expenses': (context) => const ExpensesPage(),
         '/add_expense': (context) => const AddExpensePage(),
         '/debt_optimization': (context) => const DebtOptimizationPage(),
+        '/expense_detail': (context) => const ExpenseDetailPage(), // Chi tiết chi tiêu
         
-        
-
-        // Profile & House Setup
-        '/welcome': (context) => const WelcomePage(),
-        '/join_house': (context) => const JoinHousePage(),
-        
+       
         '/house_management': (context) => const HouseManagementPage(),
-        '/create_house': (context) => const CreateHousePage(),
       },
     );
   }
