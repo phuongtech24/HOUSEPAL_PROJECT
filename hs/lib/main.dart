@@ -68,8 +68,8 @@ class MyApp extends StatelessWidget {
       
       // 2. Home gọi trực tiếp LoginPage (Bloc đã có sẵn từ AppProvider bao ngoài)
       home: const LoginPage(),
-
       // 3. Định nghĩa Routes
+      initialRoute: '/',
       routes: {
         // Auth
         '/login': (context) => const LoginPage(),
@@ -88,7 +88,16 @@ class MyApp extends StatelessWidget {
         
         '/house_management': (context) => const HouseManagementPage(),
         '/create_house': (context) => const CreateHousePage(),
+
       },
+      
+    // onGenerateRoute: (settings) => MaterialPageRoute(
+    //     builder: (context) => Scaffold(
+    //       body: Center(
+    //         child: Text('No route defined for ${settings.name}'),
+    //       ),
+    //     ),
+    //   ),
     );
   }
 }
