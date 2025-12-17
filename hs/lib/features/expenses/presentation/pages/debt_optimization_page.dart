@@ -25,7 +25,11 @@ class _DebtOptimizationPageState extends State<DebtOptimizationPage> {
     {
       "fromName": "Minh Tuấn",
       "fromAvatar": "https://i.pravatar.cc/150?img=13",
+<<<<<<< Updated upstream
       "toName": "Nam Phương", 
+=======
+      "toName": "Nam Phương",
+>>>>>>> Stashed changes
       "toAvatar": "https://i.pravatar.cc/150?img=12",
       "amount": "200.000đ",
       "description": "Tiền ăn trưa hôm qua",
@@ -57,7 +61,16 @@ class _DebtOptimizationPageState extends State<DebtOptimizationPage> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
+<<<<<<< Updated upstream
                 boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+=======
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                  ),
+                ],
+>>>>>>> Stashed changes
               ),
               child: Row(
                 children: [
@@ -73,7 +86,14 @@ class _DebtOptimizationPageState extends State<DebtOptimizationPage> {
                       children: [
                         Text("Đã tối ưu công nợ !", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                         SizedBox(height: 4),
+<<<<<<< Updated upstream
                         Text("Hệ thống đã tính toán và rút gọn các khoản nợ chéo.", style: TextStyle(color: Colors.grey, fontSize: 13)),
+=======
+                        Text(
+                          "Hệ thống đã tính toán và rút gọn các khoản nợ chéo.",
+                          style: TextStyle(color: Colors.grey, fontSize: 13),
+                        ),
+>>>>>>> Stashed changes
                       ],
                     ),
                   )
@@ -82,6 +102,7 @@ class _DebtOptimizationPageState extends State<DebtOptimizationPage> {
             ),
 
             const SizedBox(height: 24),
+<<<<<<< Updated upstream
             const Align(alignment: Alignment.centerLeft, child: Text("Gợi ý thanh toán tối ưu", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
             const SizedBox(height: 12),
             
@@ -89,6 +110,26 @@ class _DebtOptimizationPageState extends State<DebtOptimizationPage> {
             Expanded(
               child: debtItems.isEmpty
                   ? Center(child: Text("Không còn khoản nợ nào!", style: TextStyle(color: Colors.grey.shade500)))
+=======
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "Gợi ý thanh toán tối ưu",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Danh sách
+            Expanded(
+              child: debtItems.isEmpty
+                  ? Center(
+                      child: Text(
+                        "Không còn khoản nợ nào!",
+                        style: TextStyle(color: Colors.grey.shade500),
+                      ),
+                    )
+>>>>>>> Stashed changes
                   : ListView.builder(
                       itemCount: debtItems.length,
                       itemBuilder: (context, index) {
@@ -109,9 +150,13 @@ class _DebtOptimizationPageState extends State<DebtOptimizationPage> {
         // Chuyển sang trang chi tiết và chờ kết quả trả về
         final result = await Navigator.push(
           context,
+<<<<<<< Updated upstream
           MaterialPageRoute(
             builder: (context) => DebtDetailPage(item: item),
           ),
+=======
+          MaterialPageRoute(builder: (context) => DebtDetailPage(item: item)),
+>>>>>>> Stashed changes
         );
 
         // Bảo đảm widget vẫn còn mounted trước khi sử dụng lại `context`
@@ -123,6 +168,7 @@ class _DebtOptimizationPageState extends State<DebtOptimizationPage> {
             debtItems.removeAt(index);
           });
           ScaffoldMessenger.of(context).showSnackBar(
+<<<<<<< Updated upstream
             const SnackBar(content: Text("Giao dịch đã được xử lý thành công!"), backgroundColor: Colors.green),
           );
         }
@@ -156,6 +202,72 @@ class _DebtOptimizationPageState extends State<DebtOptimizationPage> {
                 )
               ],
             ),
+=======
+            const SnackBar(
+              content: Text("Giao dịch đã được xử lý thành công!"),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundImage: NetworkImage(item['fromAvatar']),
+                  radius: 24,
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: Icon(Icons.arrow_right_alt, color: Colors.grey),
+                ),
+                CircleAvatar(
+                  backgroundImage: NetworkImage(item['toAvatar']),
+                  radius: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "${item['fromName']} → ${item['toName']}",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        item['amount'],
+                        style: const TextStyle(
+                          color: AppColors.debtRed,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+>>>>>>> Stashed changes
             const SizedBox(height: 12),
             const Divider(height: 1),
             const SizedBox(height: 12),
@@ -163,6 +275,7 @@ class _DebtOptimizationPageState extends State<DebtOptimizationPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
+<<<<<<< Updated upstream
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(4)),
                   child: const Text("Chưa thanh toán", style: TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.bold)),
@@ -170,6 +283,35 @@ class _DebtOptimizationPageState extends State<DebtOptimizationPage> {
                 const Text("Xem chi tiết >", style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600)),
               ],
             )
+=======
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    "Chưa thanh toán",
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const Text(
+                  "Xem chi tiết >",
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+>>>>>>> Stashed changes
           ],
         ),
       ),
