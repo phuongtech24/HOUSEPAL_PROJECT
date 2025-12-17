@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/widgets/housepal_bottom_nav.dart';
 
 class AddExpensePage extends StatefulWidget {
   const AddExpensePage({super.key});
@@ -9,144 +10,170 @@ class AddExpensePage extends StatefulWidget {
 }
 
 class _AddExpensePageState extends State<AddExpensePage> {
-  // --- STATE VARIABLES ---
-  String selectedCategory = "Đi chợ";
-  String splitType = "Chia đều";
+  // State quản lý tab chia tiền
+  int _splitTypeIndex = 0; // 0: Chia đều, 1: Theo %, 2: Số tiền
+  final List<String> splitTypes = ["Chia đều", "Theo %", "Số tiền"];
   
-  // 1. Quản lý ngày tháng
-  DateTime selectedDate = DateTime.now();
-  TimeOfDay selectedTime = TimeOfDay.now();
-
-  // 2. Quản lý người trả tiền (Dropdown)
-  final List<String> payers = ["Nam Phương", "Văn Dũng", "Minh Tuấn"];
-  String selectedPayer = "Nam Phương"; // Giá trị mặc định
-
-  // Danh sách thành viên (Thêm trường percentage để lưu %)
+  final TextEditingController _amountController = TextEditingController();
+  
+  // Dữ liệu giả lập thành viên
   final List<Map<String, dynamic>> members = [
-    {"name": "Văn Dũng", "avatar": "https://i.pravatar.cc/150?img=11", "isSelected": true, "percentage": 0},
-    {"name": "Nam Phương", "avatar": "https://i.pravatar.cc/150?img=12", "isSelected": true, "percentage": 0},
-    {"name": "Minh Tuấn", "avatar": "https://i.pravatar.cc/150?img=13", "isSelected": true, "percentage": 0},
+    {"name": "Văn Dũng", "avatar": "https://i.pravatar.cc/150?img=11", "isSelected": true, "percentage": 0, "fixedAmount": 0},
+    {"name": "Nam Phương", "avatar": "https://i.pravatar.cc/150?img=12", "isSelected": true, "percentage": 0, "fixedAmount": 0},
+    {"name": "Minh Tuấn", "avatar": "https://i.pravatar.cc/150?img=13", "isSelected": true, "percentage": 0, "fixedAmount": 0},
   ];
 
-  // --- LOGIC FUNCTIONS ---
+  DateTime selectedDate = DateTime.now();
+  TimeOfDay selectedTime = TimeOfDay.now();
+  String selectedCategory = "Đi chợ";
+  String selectedPayer = "Nam Phương";
+  final List<String> payers = ["Nam Phương", "Văn Dũng", "Minh Tuấn"];
 
-  // Hàm chọn ngày
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(primary: AppColors.primary),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null && picked != selectedDate) {
-      setState(() {
-        selectedDate = picked;
-      });
+  // --- LOGIC TÍNH TOÁN ---
+  
+  // Hàm điều phối chung: Kiểm tra đang ở tab nào để tính toán theo tab đó
+  void _recalculateSplit() {
+    if (_splitTypeIndex == 1) {
+      _calculatePercentSplit();
+    } else if (_splitTypeIndex == 2) {
+      _calculateAmountSplit();
     }
+    // Tab 0 (Chia đều) không cần tính số liệu cụ thể, chỉ cần trạng thái isSelected là đủ
   }
 
-  // Hàm hiển thị Popup nhập %
-  void _showPercentageDialog() {
-    // Lọc ra những người được chọn
+  // 1. Logic Chia %
+  void _calculatePercentSplit() {
     List<Map<String, dynamic>> selectedMembers = members.where((m) => m['isSelected'] == true).toList();
     
     if (selectedMembers.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng chọn ít nhất 1 người tham gia!")));
+      for (var m in members) m['percentage'] = 0;
       return;
     }
 
-    // Tự động chia đều % ban đầu cho đỡ phải nhập nhiều
-    int defaultPercent = (100 / selectedMembers.length).floor();
-    for (var m in selectedMembers) {
-      m['percentage'] = defaultPercent;
+    int count = selectedMembers.length;
+    int basePercent = (100 / count).floor(); 
+    int remainder = 100 - (basePercent * count); 
+
+    for (var m in members) {
+      if (m['isSelected'] == true) {
+        m['percentage'] = basePercent;
+      } else {
+        m['percentage'] = 0;
+      }
     }
-    // Cộng phần dư vào người đầu tiên cho đủ 100%
-    selectedMembers[0]['percentage'] += (100 - (defaultPercent * selectedMembers.length));
+    // Cộng phần lẻ vào người đầu tiên được chọn
+    if (selectedMembers.isNotEmpty) {
+      selectedMembers[0]['percentage'] = (selectedMembers[0]['percentage'] as int) + remainder;
+    }
+  }
+
+  // 2. Logic Chia SỐ TIỀN
+  void _calculateAmountSplit() {
+    int totalAmount = int.tryParse(_amountController.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+    List<Map<String, dynamic>> selectedMembers = members.where((m) => m['isSelected'] == true).toList();
+
+    if (selectedMembers.isEmpty) {
+      for (var m in members) m['fixedAmount'] = 0;
+      return;
+    }
+
+    int count = selectedMembers.length;
+    int baseAmount = (totalAmount / count).floor();
+    int remainder = totalAmount - (baseAmount * count);
+
+    for (var m in members) {
+      if (m['isSelected'] == true) {
+        m['fixedAmount'] = baseAmount;
+      } else {
+        m['fixedAmount'] = 0;
+      }
+    }
+    if (selectedMembers.isNotEmpty) {
+      selectedMembers[0]['fixedAmount'] = (selectedMembers[0]['fixedAmount'] as int) + remainder;
+    }
+  }
+
+  // --- POPUP DIALOGS ---
+
+  // 1. Popup nhập % (ĐÃ BỎ CHECKBOX)
+  void _showPercentageDialog() {
+    // Chỉ lấy những người đã chọn ở màn hình chính
+    List<Map<String, dynamic>> activeMembers = members.where((m) => m['isSelected'] == true).toList();
+    
+    if (activeMembers.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng chọn người tham gia trước!")));
+      return;
+    }
+
+    // Tính toán lại lần đầu để đảm bảo số liệu đúng trước khi mở popup cho người dùng sửa
+    _calculatePercentSplit();
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) {
-        return StatefulBuilder( // Dùng StatefulBuilder để update UI trong Dialog
+        return StatefulBuilder(
           builder: (context, setDialogState) {
-            int totalPercent = selectedMembers.fold(0, (sum, item) => sum + (item['percentage'] as int));
+            int totalPercent = activeMembers.fold(0, (sum, item) => sum + (item['percentage'] as int));
 
             return AlertDialog(
-              title: const Text("Chia theo tỷ lệ %"),
-              content: SizedBox(
-                width: double.maxFinite,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text("Chia theo tỷ lệ %", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text("Tổng cộng: $totalPercent%", 
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold, 
-                        color: totalPercent == 100 ? Colors.green : Colors.red
-                      )
-                    ),
+                    Text("Tổng cộng: $totalPercent%", style: TextStyle(fontWeight: FontWeight.bold, color: totalPercent == 100 ? AppColors.primary : Colors.red)),
                     const SizedBox(height: 16),
-                    ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: selectedMembers.length,
-                      itemBuilder: (context, index) {
-                        var member = selectedMembers[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: Row(
-                            children: [
-                              Text(member['name']),
-                              const Spacer(),
-                              SizedBox(
-                                width: 60,
-                                child: TextFormField(
-                                  initialValue: member['percentage'].toString(),
-                                  keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                    suffixText: "%",
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                                    border: OutlineInputBorder(),
-                                  ),
-                                  onChanged: (value) {
-                                    setDialogState(() {
-                                      member['percentage'] = int.tryParse(value) ?? 0;
-                                    });
-                                  },
-                                ),
+                    // Duyệt danh sách activeMembers (không cần hiện checkbox nữa)
+                    ...activeMembers.map((member) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        children: [
+                          // Avatar + Tên
+                          CircleAvatar(backgroundImage: NetworkImage(member['avatar']), radius: 14),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(member['name'], style: const TextStyle(fontWeight: FontWeight.bold))),
+                          
+                          // Ô nhập liệu
+                          SizedBox(
+                            width: 80,
+                            child: TextFormField(
+                              key: ValueKey(member['percentage']),
+                              initialValue: member['percentage'].toString(),
+                              keyboardType: TextInputType.number,
+                              textAlign: TextAlign.center,
+                              decoration: InputDecoration(
+                                suffixText: "%",
+                                contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                               ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
+                              onChanged: (val) {
+                                setDialogState(() {
+                                  member['percentage'] = int.tryParse(val) ?? 0;
+                                });
+                              },
+                            ),
+                          )
+                        ],
+                      ),
+                    )),
                   ],
                 ),
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Hủy"),
+                  onPressed: () { Navigator.pop(context); }, 
+                  child: const Text("Hủy", style: TextStyle(color: Colors.grey))
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
                   onPressed: () {
-                    if (totalPercent != 100) {
-                      // Báo lỗi nếu chưa đủ 100%
-                      ScaffoldMessenger.of(context).showSnackBar(
-                         const SnackBar(content: Text("Tổng tỷ lệ phải bằng 100%"))
-                      );
-                    } else {
-                      // Lưu và đóng
-                      setState(() {
-                        splitType = "Theo %";
-                      });
+                    if (totalPercent == 100) {
+                      setState(() {});
                       Navigator.pop(context);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Tổng phải bằng 100%")));
                     }
                   },
                   child: const Text("Xác nhận", style: TextStyle(color: Colors.white)),
@@ -159,32 +186,99 @@ class _AddExpensePageState extends State<AddExpensePage> {
     );
   }
 
-  // Hàm xử lý Lưu khoản chi
-  void _handleSaveExpense() {
-    // 1. Logic lưu vào Database (Firebase) sẽ viết ở đây
+  // 2. Popup nhập Số tiền (ĐÃ BỎ CHECKBOX)
+  void _showAmountDialog() {
+    List<Map<String, dynamic>> activeMembers = members.where((m) => m['isSelected'] == true).toList();
     
-    // 2. Hiển thị thông báo thành công
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.white),
-            SizedBox(width: 8),
-            Text("Lưu khoản chi thành công!"),
-          ],
-        ),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    if (activeMembers.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng chọn người tham gia trước!")));
+      return;
+    }
+    
+    int inputTotalAmount = int.tryParse(_amountController.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+    _calculateAmountSplit(); // Tính lại phân bổ tiền tự động
 
-    // 3. Đóng màn hình sau 1 giây
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) Navigator.pop(context);
-    });
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            int currentTotal = activeMembers.fold(0, (sum, item) => sum + (item['fixedAmount'] as int));
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text("Chia theo số tiền", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text("Tổng cộng: ${currentTotal}đ", style: TextStyle(fontWeight: FontWeight.bold, color: currentTotal == inputTotalAmount ? AppColors.primary : Colors.red)),
+                    const SizedBox(height: 16),
+                    
+                    ...activeMembers.map((member) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        children: [
+                          CircleAvatar(backgroundImage: NetworkImage(member['avatar']), radius: 14),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(member['name'], style: const TextStyle(fontWeight: FontWeight.bold))),
+                          
+                          SizedBox(
+                            width: 100,
+                            child: TextFormField(
+                              key: ValueKey(member['fixedAmount']),
+                              initialValue: member['fixedAmount'].toString(),
+                              keyboardType: TextInputType.number,
+                              textAlign: TextAlign.center,
+                              decoration: InputDecoration(
+                                contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              onChanged: (val) {
+                                setDialogState(() {
+                                  member['fixedAmount'] = int.tryParse(val) ?? 0;
+                                });
+                              },
+                            ),
+                          )
+                        ],
+                      ),
+                    )),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () { Navigator.pop(context); }, 
+                  child: const Text("Hủy", style: TextStyle(color: Colors.grey))
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                  onPressed: () {
+                      if (currentTotal == inputTotalAmount) {
+                         setState(() {});
+                         Navigator.pop(context);
+                      } else {
+                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Tổng phải khớp với số tiền đã nhập")));
+                      }
+                  },
+                  child: const Text("Xác nhận", style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context, initialDate: selectedDate, firstDate: DateTime(2020), lastDate: DateTime(2030),
+      builder: (context, child) => Theme(data: Theme.of(context).copyWith(colorScheme: const ColorScheme.light(primary: AppColors.primary)), child: child!),
+    );
+    if (picked != null) setState(() => selectedDate = picked);
   }
 
   @override
@@ -192,303 +286,146 @@ class _AddExpensePageState extends State<AddExpensePage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
+        backgroundColor: Colors.white, elevation: 0,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.black), onPressed: () => Navigator.pop(context)),
         title: const Text("Thêm khoản chi", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         centerTitle: true,
-        
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Tên khoản chi
             _buildLabel("Tên khoản chi"),
-            _buildTextField(hint: "Ví dụ: Trả tiền nước tháng 10"),
-            
+            _buildTextField(controller: null, hint: "Ví dụ: Trả tiền nước tháng 10"),
             const SizedBox(height: 16),
-
-            // 2. Số tiền
             _buildLabel("Số tiền"),
-            _buildTextField(hint: "0", suffix: "VND", isNumber: true),
-
+            // Cập nhật: Thêm onChanged để khi sửa tổng tiền, các phần chia cũng tự cập nhật
+            _buildTextField(controller: _amountController, hint: "0", suffix: "VND", isNumber: true, onChanged: (val) {
+               if (_splitTypeIndex == 2) setState(() { _calculateAmountSplit(); });
+            }),
             const SizedBox(height: 16),
-
-            // 3. Ngày chi & Người trả (2 cột)
             Row(
               children: [
-                // CỘT 1: NGÀY CHI (ĐÃ SỬA: Bấm vào hiện lịch)
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildLabel("Ngày chi"),
-                      GestureDetector(
-                        onTap: () => _selectDate(context),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade300)),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                "${selectedDate.day}/${selectedDate.month}/${selectedDate.year} ${selectedTime.hour}:${selectedTime.minute.toString().padLeft(2, '0')}", 
-                                style: const TextStyle(fontSize: 13)
-                              ),
-                              const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
-                            ],
-                          ),
-                        ),
-                      )
-                    ],
-                  ),
-                ),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_buildLabel("Ngày chi"), GestureDetector(onTap: () => _selectDate(context), child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade300)), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text("${selectedDate.day}/${selectedDate.month}/${selectedDate.year}", style: const TextStyle(fontSize: 13)), const Icon(Icons.calendar_today, size: 16, color: Colors.grey)])))])),
                 const SizedBox(width: 12),
-                
-                // CỘT 2: NGƯỜI TRẢ (ĐÃ SỬA: Dropdown 3 người)
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildLabel("Người trả"),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade300)),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: selectedPayer,
-                            isExpanded: true,
-                            icon: const Icon(Icons.keyboard_arrow_down, size: 16, color: Colors.grey),
-                            style: const TextStyle(fontSize: 13, color: Colors.black, fontWeight: FontWeight.bold),
-                            onChanged: (String? newValue) {
-                              setState(() {
-                                selectedPayer = newValue!;
-                              });
-                            },
-                            items: payers.map<DropdownMenuItem<String>>((String value) {
-                              return DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(value),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      )
-                    ],
-                  ),
-                ),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_buildLabel("Người trả"), Container(padding: const EdgeInsets.symmetric(horizontal: 12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade300)), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: selectedPayer, isExpanded: true, icon: const Icon(Icons.keyboard_arrow_down, size: 16, color: Colors.grey), style: const TextStyle(fontSize: 13, color: Colors.black, fontWeight: FontWeight.bold), onChanged: (String? v) => setState(() => selectedPayer = v!), items: payers.map((String v) => DropdownMenuItem(value: v, child: Text(v))).toList())))])),
               ],
             ),
-
             const SizedBox(height: 16),
-
-            // 4. Loại chi tiêu
             _buildLabel("Loại chi tiêu"),
-            Wrap(
-              spacing: 8,
-              children: ["Điện nước", "Internet", "Tiền nhà", "Đi chợ", "Đồ dùng chung", "Khác"]
-                  .map((category) => ChoiceChip(
-                        label: Text(category),
-                        selected: selectedCategory == category,
-                        selectedColor: AppColors.creditGreen,
-                        backgroundColor: Colors.white,
-                        onSelected: (bool selected) {
-                          setState(() {
-                            selectedCategory = category;
-                          });
-                        },
-                      ))
-                  .toList(),
-            ),
-
+            Wrap(spacing: 8, children: ["Điện nước", "Internet", "Tiền nhà", "Đi chợ"].map((c) => ChoiceChip(label: Text(c), selected: selectedCategory==c, onSelected: (v)=>setState(()=>selectedCategory=c), selectedColor: AppColors.creditGreen, backgroundColor: Colors.white)).toList()),
             const SizedBox(height: 16),
-
-            // 5. Ai tham gia
+            
+            // --- DANH SÁCH THÀNH VIÊN (CHO PHÉP TÍCH CHỌN TRỰC TIẾP) ---
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _buildLabel("Ai tham gia khoản chi"),
                 GestureDetector(
-                   onTap: () {
-                     // Nếu chọn tắt cả -> Bỏ chọn hết
-                     // Bạn có thể tùy biến logic này
-                   },
-                   child: const Text("Chọn tất cả", style: TextStyle(color: AppColors.primary, fontSize: 12))
-                ),
+                  onTap: () {
+                     // Nút chọn tất cả nhanh
+                     setState(() {
+                       bool allSelected = members.every((m) => m['isSelected']);
+                       for (var m in members) m['isSelected'] = !allSelected;
+                       _recalculateSplit(); // Tính lại ngay sau khi chọn tất cả
+                     });
+                  },
+                  child: const Text("Chọn tất cả", style: TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.bold)),
+                )
               ],
             ),
             Container(
               decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
               child: Column(
                 children: members.map((member) {
+                  // KHÔNG CÒN AbsorbPointer -> Cho phép click
                   return CheckboxListTile(
                     activeColor: AppColors.primary,
-                    title: Row(
-                      children: [
-                        Text(member['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                        if (splitType == "Theo %" && member['isSelected'])
-                           Text(" (${member['percentage']}%)", style: const TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold))
-                      ],
-                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                    dense: true,
+                    controlAffinity: ListTileControlAffinity.trailing,
+                    title: Row(children: [
+                      Text(member['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                      const Spacer(),
+                      // Hiển thị kết quả tính toán ngay tại đây
+                      if (_splitTypeIndex == 1 && member['isSelected']) 
+                        Text("${member['percentage']}%", style: const TextStyle(color: AppColors.primary, fontSize: 14, fontWeight: FontWeight.bold)),
+                      if (_splitTypeIndex == 2 && member['isSelected']) 
+                        Text("${member['fixedAmount']}đ", style: const TextStyle(color: AppColors.primary, fontSize: 14, fontWeight: FontWeight.bold)),
+                    ]),
                     secondary: CircleAvatar(backgroundImage: NetworkImage(member['avatar'])),
                     value: member['isSelected'],
                     onChanged: (val) {
-                      setState(() {
-                        member['isSelected'] = val;
-                      });
-                    },
+                       setState(() {
+                         member['isSelected'] = val ?? false;
+                         // QUAN TRỌNG: Tích xong thì tính lại tiền ngay
+                         _recalculateSplit();
+                       });
+                    }, 
                   );
                 }).toList(),
               ),
             ),
-
+            
             const SizedBox(height: 16),
-
-            // 6. Cách chia tiền (ĐÃ SỬA: Xử lý Popup khi chọn %)
+            
+            // --- CÁCH CHIA TIỀN (TAB DƯỚI CÙNG) ---
             _buildLabel("Cách chia tiền"),
             Container(
               padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+              decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(12)),
               child: Row(
-                children: ["Chia đều", "Theo %", "Số tiền"].map((type) {
-                  bool isSelected = splitType == type;
+                children: List.generate(splitTypes.length, (index) {
+                  bool isSelected = _splitTypeIndex == index;
                   return Expanded(
                     child: GestureDetector(
                       onTap: () {
-                        if (type == "Theo %") {
-                          _showPercentageDialog();
-                        } else {
-                          setState(() => splitType = type);
-                        }
+                        setState(() {
+                           _splitTypeIndex = index;
+                           _recalculateSplit(); // Chuyển tab thì tính lại theo tab đó
+                        });
+                        // Nếu chuyển sang tab % hoặc tiền thì mở popup để chỉnh chi tiết
+                        if (index == 1) _showPercentageDialog();
+                        if (index == 2) _showAmountDialog();
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         decoration: BoxDecoration(
                           color: isSelected ? Colors.white : Colors.transparent,
-                          borderRadius: BorderRadius.circular(6),
-                          boxShadow: isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)] : [],
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 2)] : [],
                         ),
-                        child: Text(
-                          type,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            color: isSelected ? Colors.black : Colors.grey,
-                          ),
-                        ),
+                        child: Text(splitTypes[index], textAlign: TextAlign.center, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: Colors.black)),
                       ),
                     ),
                   );
-                }).toList(),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // 7. Ghi chú & Ảnh
-            _buildLabel("Ghi chú (Tùy chọn)"),
-            Container(
-              height: 100,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade300)),
-              child: const TextField(
-                maxLines: null,
-                decoration: InputDecoration.collapsed(hintText: "Thêm ghi chú cho khoản chi...", hintStyle: TextStyle(color: Colors.grey)),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              decoration: BoxDecoration(
-                color: Colors.white, 
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
-              ),
-              child: const Column(
-                children: [
-                  Icon(Icons.add_photo_alternate_outlined, color: Colors.grey),
-                  SizedBox(height: 4),
-                  Text("Thêm ảnh", style: TextStyle(color: Colors.grey)),
-                ],
+                }),
               ),
             ),
 
             const SizedBox(height: 32),
-
-            // Nút Lưu (ĐÃ SỬA: Thêm thông báo thành công)
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _handleSaveExpense,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                child: const Text("Lưu khoản chi", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-              ),
-            ),
+            SizedBox(width: double.infinity, height: 50, child: ElevatedButton(onPressed: (){ Navigator.pop(context); }, style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))), child: const Text("Lưu khoản chi", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)))),
             const SizedBox(height: 20),
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: Colors.grey,
-        showUnselectedLabels: true,
-        currentIndex: 2, // Vẫn giữ tab Quỹ chung sáng đèn
-        onTap: (index) {
-          if (index == 2) {
-             // Nếu bấm lại vào Quỹ chung thì quay về màn hình chính của Quỹ chung
-             Navigator.pop(context); 
-          } else if (index == 3) {
-             Navigator.pushReplacementNamed(context, '/bulletin_board');
-          }
-          // Xử lý các tab khác...
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: "Trang chủ"),
-          BottomNavigationBarItem(icon: Icon(Icons.cleaning_services_outlined), label: "Việc nhà"),
-          BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), activeIcon: Icon(Icons.account_balance_wallet), label: "Quỹ chung"),
-          BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: "Bảng tin"),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: "Hồ sơ"),
-        ],
-      ),
+      bottomNavigationBar: const HousePalBottomNav(currentIndex: 2, isSubPage: true),
     );
   }
 
-  Widget _buildLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(text, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textBlack)),
-    );
-  }
-
-  Widget _buildTextField({required String hint, String? suffix, bool isNumber = false}) {
+  Widget _buildLabel(String text) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(text, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textBlack)));
+  
+  // Update: Thêm hàm onChanged để bắt sự kiện nhập tiền
+  Widget _buildTextField({required TextEditingController? controller, required String hint, String? suffix, bool isNumber = false, Function(String)? onChanged}) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade300)), 
       child: TextField(
-        keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(color: Colors.grey),
-          suffixText: suffix,
-          suffixStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        ),
-      ),
+        controller: controller, 
+        keyboardType: isNumber ? TextInputType.number : TextInputType.text, 
+        onChanged: onChanged, // Gắn hàm onChanged vào đây
+        decoration: InputDecoration(hintText: hint, suffixText: suffix, border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14))
+      )
     );
   }
 }
