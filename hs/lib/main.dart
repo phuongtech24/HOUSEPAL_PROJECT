@@ -20,7 +20,7 @@ import 'features/house_setup/presentation/pages/house_management_page.dart';
 import 'features/expenses/presentation/pages/expenses_page.dart';
 import 'features/expenses/presentation/pages/add_expense_page.dart';
 import 'features/expenses/presentation/pages/debt_optimization_page.dart';
-import 'features/expenses/presentation/pages/expense_detail_page.dart' hide ExpensesPage; // Mới thêm
+import 'features/expenses/presentation/pages/expense_detail_page.dart';
 
 
 void main() async {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/widgets/housepal_bottom_nav.dart';
 import 'debt_detail_page.dart'; // Import trang chi tiết mới
 
 class DebtOptimizationPage extends StatefulWidget {
@@ -98,25 +99,7 @@ class _DebtOptimizationPageState extends State<DebtOptimizationPage> {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: Colors.grey,
-        showUnselectedLabels: true,
-        currentIndex: 2,
-        onTap: (index) {
-          if (index == 2) Navigator.pop(context);
-          else if (index == 3) Navigator.pushReplacementNamed(context, '/bulletin_board');
-          else if (index == 4) Navigator.pushReplacementNamed(context, '/profile');
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: "Trang chủ"),
-          BottomNavigationBarItem(icon: Icon(Icons.cleaning_services_outlined), label: "Việc nhà"),
-          BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), activeIcon: Icon(Icons.account_balance_wallet), label: "Quỹ chung"),
-          BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: "Bảng tin"),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: "Hồ sơ"),
-        ],
-      ),
+      bottomNavigationBar: const HousePalBottomNav(currentIndex: 2),
     );
   }
 
@@ -130,6 +113,9 @@ class _DebtOptimizationPageState extends State<DebtOptimizationPage> {
             builder: (context) => DebtDetailPage(item: item),
           ),
         );
+
+        // Bảo đảm widget vẫn còn mounted trước khi sử dụng lại `context`
+        if (!mounted) return;
 
         // Nếu trả về 'paid' (đã thanh toán/xác nhận) thì xóa khỏi danh sách
         if (result == 'paid') {

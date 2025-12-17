@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../widgets/balance_card.dart';
+import '../../../../core/widgets/housepal_bottom_nav.dart';
 import '../widgets/transaction_item.dart';
 
 class ExpensesPage extends StatelessWidget {
@@ -118,27 +119,7 @@ class ExpensesPage extends StatelessWidget {
       ),
       
       // Bottom Navigation Bar
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: Colors.grey,
-        showUnselectedLabels: true,
-        currentIndex: 2, // Đang ở tab Quỹ chung (Index 2)
-        onTap: (index) {
-          if (index == 3) {
-            Navigator.pushReplacementNamed(context, '/bulletin_board');
-          }
-          if (index == 4) Navigator.pushNamed(context, '/profile');
-          if (index == 0) Navigator.pushReplacementNamed(context, '/home');
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: "Trang chủ"),
-          BottomNavigationBarItem(icon: Icon(Icons.cleaning_services_outlined), label: "Việc nhà"),
-          BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), activeIcon: Icon(Icons.account_balance_wallet), label: "Quỹ chung"),
-          BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: "Bảng tin"),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: "Hồ sơ"),
-        ],
-      ),
+      bottomNavigationBar: const HousePalBottomNav(currentIndex: 2),
     );
   }
 
