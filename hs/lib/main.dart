@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 // import 'package:firebase_core/firebase_core.dart'; 
 
 import 'core/constants/app_colors.dart';
+import 'package:provider/provider.dart';
 
 // --- 1. AUTHENTICATION (Xác thực) ---
 import 'features/authentication/presentation/pages/login_page.dart';
@@ -22,7 +23,11 @@ import 'features/expenses/presentation/pages/add_expense_page.dart';
 import 'features/expenses/presentation/pages/debt_optimization_page.dart';
 import 'features/expenses/presentation/pages/expense_detail_page.dart';
 
-
+// 5. Chores and home
+import 'features/homes/presentation/home_page.dart';
+import 'features/chores/presentation/pages/chores_page.dart';
+import 'features/chores/presentation/pages/create_chore_page.dart';
+import 'features/chores/presentation/pages/chores_ranking_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -86,6 +91,14 @@ class MyApp extends StatelessWidget {
         
        
         '/house_management': (context) => const HouseManagementPage(),
+
+        // --- Home ---
+        '/home': (context) => const HomePage(),
+
+        // --- Chores ---
+        '/chores': (context) => const ChoresPage(),
+        '/chores/new': (context) => const CreateChorePage(),
+        '/chores/ranking': (context) => const ChoresRankingPage(),
       },
       
     // onGenerateRoute: (settings) => MaterialPageRoute(

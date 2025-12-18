@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../bloc/auth_bloc.dart'; 
+import '../bloc/auth_bloc.dart';
+import 'register_page.dart'; // 1. QUAN TRỌNG: Import file RegisterPage vào đây (sửa đường dẫn nếu cần)
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -11,10 +12,9 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  // Controller để lấy dữ liệu nhập vào (nếu cần xử lý sau này)
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  bool _isObscure = true; // Biến để ẩn/hiện mật khẩu
+  bool _isObscure = true;
 
   @override
   void dispose() {
@@ -56,7 +56,6 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 48),
 
               // --- FORM ĐĂNG NHẬP ---
-              // Input Email
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
@@ -77,7 +76,6 @@ class _LoginPageState extends State<LoginPage> {
               ),
               const SizedBox(height: 20),
               
-              // Input Mật khẩu
               TextField(
                 controller: _passwordController,
                 obscureText: _isObscure,
@@ -105,7 +103,6 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
               
-              // Quên mật khẩu
               const SizedBox(height: 8),
               Align(
                 alignment: Alignment.centerRight,
@@ -121,7 +118,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
               const SizedBox(height: 32),
 
-              // --- NÚT ĐĂNG NHẬP & BLoC LISTENER ---
+              // --- NÚT ĐĂNG NHẬP ---
               BlocListener<AuthBloc, AuthState>(
                 listener: (context, state) {
                   if (state is AuthSuccess) {
@@ -174,9 +171,7 @@ class _LoginPageState extends State<LoginPage> {
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white
-                                ),
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
                           : const Text(
@@ -194,14 +189,18 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 24),
               
-              // --- Đăng ký ---
+              // --- SỬA ĐOẠN NÀY: NÚT ĐĂNG KÝ ---
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text("Chưa có tài khoản? ", style: TextStyle(color: Colors.grey)),
                   GestureDetector(
                     onTap: () {
-                      // TODO: Chuyển sang trang đăng ký
+                      // 2. Chuyển hướng sang RegisterPage
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const RegisterPage()),
+                      );
                     },
                     child: const Text(
                       "Đăng ký ngay",
@@ -211,10 +210,46 @@ class _LoginPageState extends State<LoginPage> {
                 ],
               ),
               const SizedBox(height: 20),
+
+              // ... (Phần Footer Hoặc đăng nhập với... giữ nguyên)
+              const Row(
+                children: [
+                  Expanded(child: Divider()),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text("Hoặc đăng nhập với", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  ),
+                  Expanded(child: Divider()),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildSocialButton(Icons.g_mobiledata, Colors.red),
+                  const SizedBox(width: 20),
+                  _buildSocialButton(Icons.facebook, Colors.blue),
+                  const SizedBox(width: 20),
+                  _buildSocialButton(Icons.apple, Colors.black),
+                ],
+              ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  // ... (Phần Helper Widgets giữ nguyên)
+  Widget _buildSocialButton(IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.grey.shade300),
+        color: Colors.white,
+      ),
+      child: Icon(icon, color: color, size: 28),
     );
   }
 }
