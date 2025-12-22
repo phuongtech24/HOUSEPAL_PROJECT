@@ -334,3 +334,5 @@ class _ChoreRow extends StatelessWidget {
     );
   }
 }
+
+// Formatting fix
