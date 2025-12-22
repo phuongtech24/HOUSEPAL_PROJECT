@@ -25,3 +25,5 @@ class HomeActivityModel {
     required this.createdAt,
   });
 }
+
+// Minor optimization
