@@ -44,4 +44,3 @@ class BulletinNoteModel {
   }
 }
 
-// [Refactor] Code optimization pass 1
