@@ -1,40 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 
-// Enum để định nghĩa loại nào đang được chọn
-enum HighlightType {
-  debt,       // Chọn ô "Bạn đang nợ"
-  receivable, // Chọn ô "Người khác nợ bạn"
-}
-
-class BalanceCard extends StatelessWidget {
-  final HighlightType highlightType; // Biến quyết định tô màu ô nào
-  final String totalBalance;
-  final String debtAmount;
-  final String receivableAmount;
-
-  const BalanceCard({
-    super.key,
-    // Mặc định chọn ô 'debt' (nợ), nhưng có thể thay đổi khi gọi
-    this.highlightType = HighlightType.debt, 
-    this.totalBalance = "70.000đ",
-    this.debtAmount = "500.000đ",
-    this.receivableAmount = "850.000đ",
-  });
+class BalanceCardReceivable extends StatelessWidget {
+  const BalanceCardReceivable({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Logic xác định viền (Border)
-    // Nếu type là debt thì viền xanh, ngược lại là null
-    final Border? debtBorder = (highlightType == HighlightType.debt)
-        ? Border.all(color: Colors.blue, width: 2)
-        : null;
-
-    // Nếu type là receivable thì viền xanh, ngược lại là null
-    final Border? receivableBorder = (highlightType == HighlightType.receivable)
-        ? Border.all(color: Colors.blue, width: 2)
-        : null;
-
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -42,7 +13,8 @@ class BalanceCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05), // Dùng withOpacity cho ổn định
+            // Nếu báo lỗi withValues, hãy đổi thành .withOpacity(0.05)
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -51,7 +23,6 @@ class BalanceCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // --- HEADER ---
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -72,35 +43,28 @@ class BalanceCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          
-          // --- TỔNG TIỀN ---
-          Text(
-            totalBalance,
-            style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-          ),
+          const Text("70.000đ",
+              style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
           const SizedBox(height: 20),
-
-          // --- HAI Ô TRẠNG THÁI ---
           Row(
             children: [
-              // 1. Ô BẠN ĐANG NỢ (Màu Đỏ)
+              // Ô Bạn đang nợ (Không có viền)
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF0F0), // Nền đỏ nhạt
+                    color: const Color(0xFFFFF0F0), // Đỏ rất nhạt
                     borderRadius: BorderRadius.circular(12),
-                    border: debtBorder, // <--- Logic viền tự động ở đây
                   ),
-                  child: Column(
+                  child: const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("Bạn đang nợ",
+                      Text("Bạn đang nợ",
                           style: TextStyle(
                               color: AppColors.debtRed, fontSize: 12)),
-                      const SizedBox(height: 4),
-                      Text(debtAmount,
-                          style: const TextStyle(
+                      SizedBox(height: 4),
+                      Text("500.000đ",
+                          style: TextStyle(
                               color: AppColors.debtRed,
                               fontWeight: FontWeight.bold,
                               fontSize: 18)),
@@ -108,26 +72,27 @@ class BalanceCard extends StatelessWidget {
                   ),
                 ),
               ),
-              
               const SizedBox(width: 12),
               
-              // 2. Ô NGƯỜI KHÁC NỢ BẠN (Màu Xanh)
+              // Ô Người khác nợ bạn (CÓ VIỀN XANH - HIGHLIGHT)
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE0F9F4), // Nền xanh nhạt
+                    color: const Color(0xFFE0F9F4), // Xanh rất nhạt
                     borderRadius: BorderRadius.circular(12),
-                    border: receivableBorder, // <--- Logic viền tự động ở đây
+                    border: Border.all(
+                        color: Colors.blue,
+                        width: 2), // Viền xanh để nhấn mạnh
                   ),
-                  child: Column(
+                  child: const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("Người khác nợ bạn",
+                      Text("Người khác nợ bạn",
                           style: TextStyle(color: Colors.teal, fontSize: 12)),
-                      const SizedBox(height: 4),
-                      Text(receivableAmount,
-                          style: const TextStyle(
+                      SizedBox(height: 4),
+                      Text("850.000đ",
+                          style: TextStyle(
                               color: Colors.teal,
                               fontWeight: FontWeight.bold,
                               fontSize: 18)),

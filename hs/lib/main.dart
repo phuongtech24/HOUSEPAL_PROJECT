@@ -1,5 +1,7 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hs/firebase_options.dart';
 // import 'package:firebase_core/firebase_core.dart'; 
 
 import 'core/constants/app_colors.dart';
@@ -34,7 +36,9 @@ void main() async {
   // if (Platform.isAndroid || Platform.isIOS) {
   //   await Firebase.initializeApp();
   // }
-
+  await Firebase.initializeApp(
+  options: DefaultFirebaseOptions.currentPlatform,
+);
   runApp(
     MultiBlocProvider(
       providers: [
