@@ -146,4 +146,3 @@ class _BulletinBoardPageState extends State<BulletinBoardPage> {
   }
 }
 
-// [Update] Temporary logic adjustment
