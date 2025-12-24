@@ -5,8 +5,8 @@ import '../../../../core/widgets/housepal_bottom_nav.dart';
 const Color _greyText = Color(0xFF8B8E98);
 const double _cardRadius = 16;
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+class AdminHomePage extends StatelessWidget {
+  const AdminHomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -28,11 +28,11 @@ class HomePage extends StatelessWidget {
             const SizedBox(height: 16),
             _buildTodayChores(),
             const SizedBox(height: 16),
+            _buildMembersOverview(),
+            const SizedBox(height: 16),
             _buildFinanceOverview(),
             const SizedBox(height: 16),
-            _buildRecentNews(),
-            const SizedBox(height: 20),
-            _buildMonthlyStarButton(),
+            _buildRecentActivities(),
           ],
         ),
       ),
@@ -54,7 +54,7 @@ class HomePage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Xin chào! 👋',
+                'Xin chào, Admin 👋',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
               ),
               SizedBox(height: 2),
@@ -73,10 +73,28 @@ class HomePage extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: const Color(0xFFE3E5EA)),
           ),
-          child: const Icon(
-            Icons.notifications_none_outlined,
-            size: 22,
-            color: Colors.black87,
+          child: Stack(
+            children: [
+              const Center(
+                child: Icon(
+                  Icons.notifications_none_outlined,
+                  size: 22,
+                  color: Colors.black87,
+                ),
+              ),
+              Positioned(
+                right: 10,
+                top: 10,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -98,18 +116,18 @@ class HomePage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
                 Icon(
-                  Icons.event_available_outlined,
+                  Icons.star_border,
                   color: AppColors.primary,
                   size: 24,
                 ),
                 SizedBox(height: 8),
                 Text(
-                  '3',
+                  '250',
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
                 ),
                 SizedBox(height: 4),
                 Text(
-                  'Việc hôm nay',
+                  'Điểm tháng này',
                   style: TextStyle(fontSize: 13, color: _greyText),
                 ),
               ],
@@ -128,15 +146,19 @@ class HomePage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
-                Icon(Icons.star_border, color: AppColors.primary, size: 24),
+                Icon(
+                  Icons.arrow_downward_rounded,
+                  color: AppColors.primary,
+                  size: 24,
+                ),
                 SizedBox(height: 8),
                 Text(
-                  '150',
+                  '50.000đ',
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
                 ),
                 SizedBox(height: 4),
                 Text(
-                  'Điểm tháng này',
+                  'Bạn đang nợ',
                   style: TextStyle(fontSize: 13, color: _greyText),
                 ),
               ],
@@ -220,11 +242,48 @@ class HomePage extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              decoration: done
-                  ? TextDecoration.lineThrough
-                  : TextDecoration.none,
+              decoration:
+                  done ? TextDecoration.lineThrough : TextDecoration.none,
               color: done ? _greyText : Colors.black,
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMembersOverview() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Tổng quan thành viên',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 152,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: const [
+              _MemberCard(
+                name: 'Văn Dũng',
+                points: '230 điểm',
+                debtText: 'Nợ 15k',
+              ),
+              SizedBox(width: 12),
+              _MemberCard(
+                name: 'Nam Phương',
+                points: '210 điểm',
+                debtText: 'Nợ bạn 35k',
+              ),
+              SizedBox(width: 12),
+              _MemberCard(
+                name: 'Minh Tuấn',
+                points: '280 điểm',
+                debtText: 'Nợ Nam Phương',
+              ),
+            ],
           ),
         ),
       ],
@@ -294,29 +353,31 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildRecentNews() {
+  Widget _buildRecentActivities() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Bảng tin gần đây', onViewAll: () {}),
+        const Text(
+          'Hoạt động gần đây',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(_cardRadius),
-            border: Border.all(color: const Color(0xFFE3E5EA)),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Column(
             children: const [
-              _NewsItem(
-                title: 'Họp nhà khẩn cấp tối nay',
-                subtitle: 'bởi Admin • 1 giờ trước',
+              _ActivityItem(
+                title: 'Nam Phương đã hoàn thành việc Lau dọn bếp',
+                subtitle: '5 phút trước',
               ),
-              Divider(height: 16, color: Color(0xFFE3E5EA)),
-              _NewsItem(
-                title: 'Nhắc nhở đóng tiền mạng tháng 12',
-                subtitle: 'bởi Admin • 1 ngày trước',
+              Divider(height: 18),
+              _ActivityItem(
+                title: 'Minh Tuấn đã thêm một khoản chi 150.000đ cho tiền điện.',
+                subtitle: 'Vừa xong',
               ),
             ],
           ),
@@ -324,37 +385,62 @@ class HomePage extends StatelessWidget {
       ],
     );
   }
+}
 
+class _MemberCard extends StatelessWidget {
+  const _MemberCard({
+    required this.name,
+    required this.points,
+    required this.debtText,
+  });
 
-  Widget _buildMonthlyStarButton() {
-    return SizedBox(
-      height: 52,
-      width: double.infinity,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+  final String name;
+  final String points;
+  final String debtText;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 126,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(_cardRadius),
+        border: Border.all(color: const Color(0xFFE3E5EA)),
+      ),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const CircleAvatar(radius: 22),
+          const SizedBox(height: 8),
+          Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
           ),
-          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-        ),
-        onPressed: () {},
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.emoji_events_outlined, size: 20),
-            SizedBox(width: 8),
-            Text('Người xuất sắc tháng này'),
-          ],
-        ),
+          const SizedBox(height: 4),
+          Text(
+            points,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 12, color: _greyText),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            debtText,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 12, color: _greyText),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _NewsItem extends StatelessWidget {
-  const _NewsItem({required this.title, required this.subtitle});
+class _ActivityItem extends StatelessWidget {
+  const _ActivityItem({required this.title, required this.subtitle});
 
   final String title;
   final String subtitle;
@@ -366,19 +452,14 @@ class _NewsItem extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 4),
         Text(
           subtitle,
           style: const TextStyle(fontSize: 12, color: _greyText),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
         ),
       ],
     );
   }
 }
-
