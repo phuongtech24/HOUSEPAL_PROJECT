@@ -1,51 +1,69 @@
-import 'dart:core';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-import 'package:hs/features/authentication/domain/entities/user_entity.dart';
+class UserModel {
+  final String uid;
+  final String name;
+  final String email;
+  final String phoneNumber;
+  final String dob;
+  final String gender;
+  final String bio;
+  final String avatarUrl;      // Mới
+  final String houseId;        // Mới (Quan trọng nhất)
+  final String role;           // Mới ('admin' hoặc 'member')
+  final int currentPoints;     // Mới (Game hóa)
+  final String fcmToken;       // Mới (Thông báo)
+  final DateTime createdAt;
 
-class UserModel extends UserEntity {
-  const UserModel ({
-    required super.memberId,
-    required super.name,
-    required super.email,
-    required super.avatar,
-    required super.point,
-    required super.role,
+  UserModel({
+    required this.uid,
+    required this.name,
+    required this.email,
+    required this.phoneNumber,
+    this.dob = '',
+    this.gender = 'Khác',
+    this.bio = '',
+    this.avatarUrl = '',
+    this.houseId = '',
+    this.role = 'member',
+    this.currentPoints = 0,
+    this.fcmToken = '',
+    required this.createdAt,
+  });
+
+  factory UserModel.fromMap(Map<String, dynamic> map) {
+    return UserModel(
+      uid: map['uid'] ?? '',
+      name: map['name'] ?? '',
+      email: map['email'] ?? '',
+      phoneNumber: map['phoneNumber'] ?? '',
+      dob: map['dob'] ?? '',
+      gender: map['gender'] ?? 'Khác',
+      bio: map['bio'] ?? '',
+      avatarUrl: map['avatarUrl'] ?? '',
+      houseId: map['houseId'] ?? '',
+      role: map['role'] ?? 'member',
+      currentPoints: map['currentPoints'] ?? 0,
+      fcmToken: map['fcmToken'] ?? '',
+      createdAt: (map['createdAt'] as Timestamp).toDate(),
+    );
   }
-  );
-  
-  
-  //chuyển dữ liệu thành map để lưu vào firestore
-  Map<String, Object?> toDocument(){
+
+  Map<String, dynamic> toMap() {
     return {
-      'memberId': memberId,
-      'name':name,
-      'email':email,
-      'role':role,
-      'avatar':avatar,
-      'point':point,
+      'uid': uid,
+      'name': name,
+      'email': email,
+      'phoneNumber': phoneNumber,
+      'dob': dob,
+      'gender': gender,
+      'bio': bio,
+      'avatarUrl': avatarUrl,
+      'houseId': houseId,
+      'role': role,
+      'currentPoints': currentPoints,
+      'fcmToken': fcmToken,
+      'createdAt': Timestamp.fromDate(createdAt),
     };
   }
-  // 4. Đọc từ Map (JSON) của Firebase về thành Model
-  factory UserModel.fromDocument(Map<String, Object?> doc){
-    return UserModel(
-      memberId: doc['memberId'] as String,
-      name: doc['name'] as String,
-      email: doc['email'] as String,
-      avatar: doc['avatar'] as String,
-      point: doc['point'] as int,
-      role: doc['role'] as String,
-    );
-  }
-  factory UserModel.fromEntity(UserEntity user){
-    return UserModel(
-      memberId: user.memberId,
-      name: user.name,
-      email: user.email,
-      avatar: user.avatar,
-      point: user.point,
-      role: user.role, 
-    );
-  }
-
-  
 }

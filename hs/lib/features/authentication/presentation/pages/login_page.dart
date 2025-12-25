@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../bloc/auth_bloc.dart';
-import 'register_page.dart'; // 1. QUAN TRỌNG: Import file RegisterPage vào đây (sửa đường dẫn nếu cần)
+import '../../data/datasources/auth_service.dart'; // Import AuthService
+import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -14,13 +13,53 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final AuthService _authService = AuthService(); // Khởi tạo Service
+  
   bool _isObscure = true;
+  bool _isLoading = false; // Biến trạng thái loading
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  // Hàm xử lý Đăng nhập
+  Future<void> _handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập đầy đủ thông tin'))
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true); // Bật loading
+
+    try {
+      // Gọi Service đăng nhập
+      await _authService.loginWithEmail(email, password);
+
+      setState(() => _isLoading = false); // Tắt loading
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đăng nhập thành công!'))
+        );
+        // Chuyển hướng vào trang chính (Expenses hoặc Welcome)
+        Navigator.pushReplacementNamed(context, '/expenses'); 
+      }
+    } catch (e) {
+      setState(() => _isLoading = false); // Tắt loading
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceAll("Exception: ", "")))
+        );
+      }
+    }
   }
 
   @override
@@ -63,14 +102,6 @@ class _LoginPageState extends State<LoginPage> {
                   labelText: "Email / Số điện thoại",
                   hintText: "Nhập email của bạn",
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.grey),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.primary, width: 2),
-                  ),
                   prefixIcon: const Icon(Icons.email_outlined),
                 ),
               ),
@@ -83,14 +114,6 @@ class _LoginPageState extends State<LoginPage> {
                   labelText: "Mật khẩu",
                   hintText: "Nhập mật khẩu",
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.grey),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.primary, width: 2),
-                  ),
                   prefixIcon: const Icon(Icons.lock_outline),
                   suffixIcon: IconButton(
                     icon: Icon(_isObscure ? Icons.visibility_off : Icons.visibility),
@@ -108,7 +131,7 @@ class _LoginPageState extends State<LoginPage> {
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () {
-                    // TODO: Xử lý quên mật khẩu
+                    // TODO: Xử lý quên mật khẩu sau
                   },
                   child: const Text(
                     "Quên mật khẩu?", 
@@ -118,85 +141,45 @@ class _LoginPageState extends State<LoginPage> {
               ),
               const SizedBox(height: 32),
 
-              // --- NÚT ĐĂNG NHẬP ---
-              BlocListener<AuthBloc, AuthState>(
-                listener: (context, state) {
-                  if (state is AuthSuccess) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Đăng nhập thành công!'))
-                    );
-                    Navigator.pushReplacementNamed(context, '/expenses');
-                  } else if (state is AuthFailure) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Lỗi: ${state.error}'))
-                    );
-                  }
-                },
-                child: BlocBuilder<AuthBloc, AuthState>(
-                  builder: (context, state) {
-                    return ElevatedButton(
-                      onPressed: state is AuthLoading
-                          ? null
-                          : () {
-                              final email = _emailController.text.trim();
-                              final password = _passwordController.text.trim();
-
-                              if (email.isEmpty || password.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Vui lòng nhập đầy đủ thông tin')
-                                  )
-                                );
-                                return;
-                              }
-
-                              context.read<AuthBloc>().add(
-                                LoginRequested(
-                                  email: email,
-                                  password: password,
-                                ),
-                              );
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)
-                        ),
-                        elevation: 2,
-                      ),
-                      child: state is AuthLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : const Text(
-                              "Đăng nhập",
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold
-                              )
-                            ),
-                    );
-                  },
+              // --- NÚT ĐĂNG NHẬP (Đã thay Bloc bằng setState) ---
+              ElevatedButton(
+                onPressed: _isLoading ? null : _handleLogin,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)
+                  ),
+                  elevation: 2,
                 ),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Text(
+                        "Đăng nhập",
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold
+                        )
+                      ),
               ),
 
               const SizedBox(height: 24),
               
-              // --- SỬA ĐOẠN NÀY: NÚT ĐĂNG KÝ ---
+              // --- NÚT ĐĂNG KÝ ---
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text("Chưa có tài khoản? ", style: TextStyle(color: Colors.grey)),
                   GestureDetector(
                     onTap: () {
-                      // 2. Chuyển hướng sang RegisterPage
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => const RegisterPage()),
@@ -211,7 +194,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
               const SizedBox(height: 20),
 
-              // ... (Phần Footer Hoặc đăng nhập với... giữ nguyên)
+              // --- PHẦN SOCIAL LOGIN (Giữ nguyên giao diện) ---
               const Row(
                 children: [
                   Expanded(child: Divider()),
@@ -226,7 +209,7 @@ class _LoginPageState extends State<LoginPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _buildSocialButton(Icons.g_mobiledata, Colors.red),
+                  _buildSocialButton(Icons.g_mobiledata, Colors.red), // Bạn có thể thay bằng icon Google chuẩn sau
                   const SizedBox(width: 20),
                   _buildSocialButton(Icons.facebook, Colors.blue),
                   const SizedBox(width: 20),
@@ -240,7 +223,6 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // ... (Phần Helper Widgets giữ nguyên)
   Widget _buildSocialButton(IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(12),

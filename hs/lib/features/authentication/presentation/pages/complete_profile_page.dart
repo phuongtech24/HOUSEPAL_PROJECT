@@ -1,5 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../data/datasources/auth_service.dart'; // Import AuthService
 import '../widgets/auth_label.dart';       
 import '../widgets/auth_text_field.dart';  
 import '../widgets/primary_button.dart';   
@@ -31,7 +33,9 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   final TextEditingController _dobController = TextEditingController();
   final TextEditingController _bioController = TextEditingController();
   
+  final AuthService _authService = AuthService(); // Khởi tạo Service
   String _selectedGender = "Nam";
+  bool _isLoading = false; // Biến trạng thái loading
 
   @override
   void initState() {
@@ -40,28 +44,63 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     _missingInfoController = TextEditingController();
   }
 
-  void _onFinish() {
+  Future<void> _onFinish() async {
+    // 1. Validate dữ liệu
+    print("DEBUG: Nút đã được bấm!");
+    final missingInfo = _missingInfoController.text.trim();
+    final dob = _dobController.text.trim();
+    final bio = _bioController.text.trim();
+
+    if (missingInfo.isEmpty) {
+       ScaffoldMessenger.of(context).showSnackBar(
+         SnackBar(content: Text("Vui lòng nhập ${widget.isPhoneRegistered ? 'Email' : 'Số điện thoại'}"))
+       );
+       return;
+    }
+
+    // 2. Xử lý logic theo luồng
     if (widget.isPhoneRegistered) {
-       // TH2: Đăng ký SĐT -> Nhập xong Email -> Vào thẳng WelcomePage
-       // SỬA Ở ĐÂY: '/expenses' -> '/welcome'
+       // --- TRƯỜNG HỢP SĐT (Đã OTP xong -> Lưu Data) ---
+       // Logic này giả định bạn đã verify phone và user đã được tạo
+       // Tạm thời chỉ điều hướng
        Navigator.pushNamedAndRemoveUntil(context, '/welcome', (route) => false);
     } else {
-       // TH1: Đăng ký Email -> Nhập SĐT -> Sang OTP -> Xong OTP thì vào WelcomePage
-       final phone = _missingInfoController.text.trim();
-       if (phone.isEmpty) {
-         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng nhập số điện thoại")));
-         return;
+       // --- TRƯỜNG HỢP EMAIL (Đã Đăng ký Auth xong -> Cần verify Phone -> Lưu Data) ---
+       // Lưu ý: Để đơn giản hóa, mình sẽ LƯU DATA LUÔN mà không qua OTP Phone.
+       // Nếu bạn muốn OTP Phone thì logic sẽ phức tạp hơn.
+       // Dưới đây là code LƯU DATA VÀO FIRESTORE:
+       
+       setState(() => _isLoading = true);
+
+       try {
+         // Lấy user hiện tại (vừa đăng ký ở bước trước)
+         final user = _authService.currentUser;
+         if (user == null) throw Exception("Không tìm thấy người dùng");
+
+         // Gọi Service lưu vào Firestore
+         await _authService.saveUserData(
+            uid: user.uid,
+            name: widget.initialName,
+            email: widget.initialEmail!,
+            phoneNumber: missingInfo, // SĐT người dùng nhập thêm
+            dob: dob,
+            gender: _selectedGender,
+            bio: bio,
+         );
+
+         setState(() => _isLoading = false);
+
+         // Thành công -> Vào App chính
+         if (mounted) {
+           Navigator.pushNamedAndRemoveUntil(context, '/welcome', (route) => false);
+         }
+
+       } catch (e) {
+         setState(() => _isLoading = false);
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text("Lỗi lưu hồ sơ: ${e.toString()}"))
+         );
        }
-       Navigator.push(
-         context,
-         MaterialPageRoute(
-           builder: (context) => OtpVerificationPage(
-             phoneNumber: phone,
-             // SỬA Ở ĐÂY: Dùng widget điều hướng về Welcome
-             nextPage: const _NavigateToWelcome(), 
-           ),
-         ),
-       );
     }
   }
 
@@ -160,7 +199,10 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
             ),
             const SizedBox(height: 30),
 
-            PrimaryButton(text: "Bắt đầu ngay ->", onPressed: _onFinish),
+            // Nút bấm có loading
+            _isLoading
+                ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                : PrimaryButton(text: "Bắt đầu ngay ->", onPressed: _onFinish),
           ],
         ),
       ),
@@ -168,22 +210,4 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   }
 }
 
-// Widget giả để kích hoạt chuyển trang về Welcome sau khi OTP xong
-class _NavigateToWelcome extends StatefulWidget {
-  const _NavigateToWelcome();
-  @override
-  State<_NavigateToWelcome> createState() => _NavigateToWelcomeState();
-}
-
-class _NavigateToWelcomeState extends State<_NavigateToWelcome> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // SỬA Ở ĐÂY: '/expenses' -> '/welcome'
-      Navigator.pushNamedAndRemoveUntil(context, '/welcome', (route) => false);
-    });
-  }
-  @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: CircularProgressIndicator()));
-}
+// Widget giả _NavigateToWelcome không cần thiết nữa vì ta điều hướng trực tiếp trong hàm _onFinish
