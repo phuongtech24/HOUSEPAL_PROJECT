@@ -295,36 +295,25 @@ class HomePage extends StatelessWidget {
   }
 
   Widget _buildRecentNews() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionHeader('Bảng tin gần đây', onViewAll: () {}),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(_cardRadius),
-            border: Border.all(color: const Color(0xFFE3E5EA)),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Column(
-            children: const [
-              _NewsItem(
-                title: 'Họp nhà khẩn cấp tối nay',
-                subtitle: 'bởi Admin • 1 giờ trước',
-              ),
-              Divider(height: 16, color: Color(0xFFE3E5EA)),
-              _NewsItem(
-                title: 'Nhắc nhở đóng tiền mạng tháng 12',
-                subtitle: 'bởi Admin • 1 ngày trước',
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      _buildSectionHeader('Hoạt động gần đây', onViewAll: () {}),
+      const SizedBox(height: 12),
+      _ActivityItem(
+        title: 'Nam Phương',
+        action: 'đã hoàn thành việc Lau dọn bếp.',
+        time: '5 phút trước',
+      ),
+      const SizedBox(height: 12),
+      _ActivityItem(
+        title: 'Minh Tuấn',
+        action: 'đã thêm một khoản chi 150.000đ cho tiền điện.',
+        time: '',
+      ),
+    ],
+  );
+}
 
   Widget _buildMonthlyStarButton() {
     return SizedBox(
@@ -382,3 +371,82 @@ class _NewsItem extends StatelessWidget {
   }
 }
 
+class _ActivityItem extends StatelessWidget {
+  const _ActivityItem({
+    required this.title,
+    required this.action,
+    required this.time,
+  });
+
+  final String title;
+  final String action;
+  final String time;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE3E5EA)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          /// ICON TRẠNG THÁI
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE9FBF2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.check_rounded,
+              color: AppColors.primary,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                RichText(
+                  text: TextSpan(
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.black,
+                    ),
+                    children: [
+                      TextSpan(
+                        text: title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      TextSpan(text: ' $action'),
+                    ],
+                  ),
+                ),
+                if (time.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    time,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: _greyText,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
