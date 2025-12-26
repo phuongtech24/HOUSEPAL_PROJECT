@@ -44,10 +44,7 @@ class _DebtOptimizationPageState extends State<DebtOptimizationPage> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          "Tối ưu công nợ",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-        ),
+        title: const Text("Tối ưu công nợ", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: Padding(
@@ -71,28 +68,15 @@ class _DebtOptimizationPageState extends State<DebtOptimizationPage> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(12),
-                    decoration: const BoxDecoration(
-                      color: AppColors.creditGreen,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.cached,
-                      color: Colors.white,
-                      size: 30,
-                    ),
+                    decoration: const BoxDecoration(color: AppColors.creditGreen, shape: BoxShape.circle),
+                    child: const Icon(Icons.cached, color: Colors.white, size: 30),
                   ),
                   const SizedBox(width: 16),
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          "Đã tối ưu công nợ !",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
+                        Text("Đã tối ưu công nợ !", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                         SizedBox(height: 4),
                         Text(
                           "Hệ thống đã tính toán và rút gọn các khoản nợ chéo.",
@@ -100,7 +84,7 @@ class _DebtOptimizationPageState extends State<DebtOptimizationPage> {
                         ),
                       ],
                     ),
-                  ),
+                  )
                 ],
               ),
             ),

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/chore_widgets.dart';
 import '../../../../core/widgets/housepal_bottom_nav.dart';
-import 'create_chore_success_page.dart';
-
 
 enum RepeatFrequency { none, daily, monthly, yearly }
 
@@ -16,21 +14,17 @@ class CreateChorePage extends StatefulWidget {
 class _CreateChorePageState extends State<CreateChorePage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _pointsController = TextEditingController(
-    text: '0',
-  );
 
   DateTime _start = DateTime(2025, 11, 28, 9, 0);
-  DateTime _end = DateTime(2025, 11, 28, 18, 0);
-
+  DateTime _end = DateTime(2025, 11, 28, 16, 0);
   RepeatFrequency _frequency = RepeatFrequency.none;
-  int _points = 0;
+  int _points = 10;
   bool _autoRotate = false;
 
   final Map<String, bool> _members = {
     'Bạn': true,
-    'Nam Phương': true,
-    'Minh Tuấn': true,
+    'Nam Phương': false,
+    'Minh Tuấn': false,
   };
 
   String? _assignedMember;
@@ -39,18 +33,16 @@ class _CreateChorePageState extends State<CreateChorePage> {
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
-    _pointsController.dispose();
     super.dispose();
   }
 
-  String _formatDateOnly(DateTime dt) {
-    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
-  }
-
-  String _formatTimeOnly(DateTime start, DateTime end) {
-    final s = '${start.hour}:${start.minute.toString().padLeft(2, '0')}';
-    final e = '${end.hour}:${end.minute.toString().padLeft(2, '0')}';
-    return '$s → $e';
+  String _formatDateTime(DateTime dt) {
+    final String day = dt.day.toString().padLeft(2, '0');
+    final String month = dt.month.toString().padLeft(2, '0');
+    final String year = dt.year.toString();
+    final String hour = dt.hour.toString().padLeft(2, '0');
+    final String minute = dt.minute.toString().padLeft(2, '0');
+    return '$day/$month/$year  $hour:$minute';
   }
 
   String _frequencyLabel(RepeatFrequency f) {
@@ -66,62 +58,63 @@ class _CreateChorePageState extends State<CreateChorePage> {
     }
   }
 
-  Future<void> _pickDate() async {
-    final date = await showDatePicker(
+  Future<void> _pickStart() async {
+    final DateTime? date = await showDatePicker(
       context: context,
       initialDate: _start,
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
     );
-    if (date == null) return;
+    if (date == null) {
+      return;
+    }
+
+    final TimeOfDay? time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_start),
+    );
+    if (time == null) {
+      return;
+    }
 
     setState(() {
       _start = DateTime(
         date.year,
         date.month,
         date.day,
-        _start.hour,
-        _start.minute,
+        time.hour,
+        time.minute,
       );
-      _end = DateTime(date.year, date.month, date.day, _end.hour, _end.minute);
     });
   }
 
-  Future<void> _pickTimeRange() async {
-    final startTime = await showTimePicker(
+  Future<void> _pickEnd() async {
+    final DateTime? date = await showDatePicker(
       context: context,
-      initialTime: TimeOfDay.fromDateTime(_start),
+      initialDate: _end,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
     );
-    if (startTime == null) return;
+    if (date == null) {
+      return;
+    }
 
-    final endTime = await showTimePicker(
+    final TimeOfDay? time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(_end),
     );
-    if (endTime == null) return;
+    if (time == null) {
+      return;
+    }
 
     setState(() {
-      _start = DateTime(
-        _start.year,
-        _start.month,
-        _start.day,
-        startTime.hour,
-        startTime.minute,
-      );
-      _end = DateTime(
-        _end.year,
-        _end.month,
-        _end.day,
-        endTime.hour,
-        endTime.minute,
-      );
+      _end = DateTime(date.year, date.month, date.day, time.hour, time.minute);
     });
   }
 
   void _changePoints(int delta) {
     setState(() {
       _points = (_points + delta).clamp(0, 999);
-      _pointsController.text = _points.toString();
     });
   }
 
@@ -136,12 +129,17 @@ class _CreateChorePageState extends State<CreateChorePage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-          onPressed: () => Navigator.pop(context),
+          color: Colors.black87,
+          onPressed: () => Navigator.of(context).pop(),
         ),
         centerTitle: true,
         title: const Text(
           'Tạo việc nhà mới',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: Colors.black,
+          ),
         ),
       ),
       body: ListView(
@@ -151,79 +149,63 @@ class _CreateChorePageState extends State<CreateChorePage> {
             label: 'Tên việc nhà',
             child: TextField(
               controller: _nameController,
+              style: const TextStyle(fontSize: 14),
               decoration: const InputDecoration(
                 hintText: 'Ví dụ: Rửa bát, Đổ rác,...',
+                hintStyle: TextStyle(color: kGreyText, fontSize: 14),
                 border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(vertical: 10),
               ),
             ),
           ),
-
           const SizedBox(height: 12),
-
           _InputCard(
             label: 'Mô tả (Tùy chọn)',
             child: TextField(
               controller: _descriptionController,
               maxLines: 3,
+              style: const TextStyle(fontSize: 14),
               decoration: const InputDecoration(
-                hintText: 'Ví dụ: Rửa sạch bát đũa sau bữa tối...',
+                hintText: 'Ví dụ: Vệ sinh tủ lạnh sau bữa trưa...',
+                hintStyle: TextStyle(color: kGreyText, fontSize: 14),
                 border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(vertical: 8),
               ),
             ),
           ),
-
           const SizedBox(height: 12),
-
           Row(
             children: [
               Expanded(
                 child: _InputCard(
-                  label: 'Ngày thực hiện',
-                  child: InkWell(
-                    onTap: _pickDate,
-                    child: Row(
-                      children: [
-                        Expanded(child: Text(_formatDateOnly(_start))),
-                        const Icon(
-                          Icons.calendar_today_outlined,
-                          size: 18,
-                          color: kGreyText,
-                        ),
-                      ],
-                    ),
+                  label: 'Ngày bắt đầu',
+                  child: _DateField(
+                    text: _formatDateTime(_start),
+                    onTap: _pickStart,
                   ),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _InputCard(
-                  label: 'Khung giờ làm việc',
-                  child: InkWell(
-                    onTap: _pickTimeRange,
-                    child: Row(
-                      children: [
-                        Expanded(child: Text(_formatTimeOnly(_start, _end))),
-                        const Icon(
-                          Icons.access_time,
-                          size: 18,
-                          color: kGreyText,
-                        ),
-                      ],
-                    ),
+                  label: 'Ngày kết thúc',
+                  child: _DateField(
+                    text: _formatDateTime(_end),
+                    onTap: _pickEnd,
                   ),
                 ),
               ),
             ],
           ),
-
           const SizedBox(height: 12),
-
           _InputCard(
             label: 'Tần suất lặp lại',
             child: DropdownButtonHideUnderline(
               child: DropdownButton<RepeatFrequency>(
                 value: _frequency,
                 isExpanded: true,
+                icon: const Icon(Icons.expand_more, color: kGreyText),
+                style: const TextStyle(fontSize: 14, color: Colors.black),
                 items: RepeatFrequency.values
                     .map(
                       (f) => DropdownMenuItem(
@@ -232,167 +214,166 @@ class _CreateChorePageState extends State<CreateChorePage> {
                       ),
                     )
                     .toList(),
-                onChanged: (v) => setState(() => _frequency = v!),
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+                  setState(() {
+                    _frequency = value;
+                  });
+                },
               ),
             ),
           ),
-
           const SizedBox(height: 12),
-
           _InputCard(
             label: 'Điểm',
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _StepButton(icon: Icons.remove, onTap: () => _changePoints(-1)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: _pointsController,
-                    keyboardType: TextInputType.number,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                    ),
-                    decoration: const InputDecoration(border: InputBorder.none),
-                    onChanged: (value) {
-                      final int? parsed = int.tryParse(value);
-                      setState(() {
-                        _points = parsed?.clamp(0, 999) ?? 0;
-                      });
-                    },
+                const SizedBox(width: 24),
+                Text(
+                  '$_points',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 24),
                 _StepButton(icon: Icons.add, onTap: () => _changePoints(1)),
               ],
             ),
           ),
-
           const SizedBox(height: 12),
-
           Container(
             decoration: BoxDecoration(
               color: const Color(0xFFEAFBF3),
               borderRadius: kCardRadius,
-              border: Border.all(
-                color: _autoRotate ? kPrimaryGreen : Colors.transparent,
-                width: 2,
-              ),
             ),
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     const Icon(Icons.sync, color: kPrimaryGreen),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
                     const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Tự động xoay vòng',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Tự động phân công cho người tiếp theo sau mỗi chu kỳ',
-                            style: TextStyle(fontSize: 13, color: kGreyText),
-                          ),
-                        ],
+                      child: Text(
+                        'Tự động xoay vòng',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                     Switch(
                       value: _autoRotate,
+                      activeColor: Colors.white,
                       activeTrackColor: kPrimaryGreen,
-                      onChanged: (v) => setState(() => _autoRotate = v),
+                      inactiveThumbColor: Colors.white,
+                      inactiveTrackColor: const Color(0xFFD5E5DA),
+                      onChanged: (value) {
+                        setState(() {
+                          _autoRotate = value;
+                        });
+                      },
                     ),
                   ],
                 ),
-
+                const SizedBox(height: 4),
+                const Text(
+                  'Tự động phân công cho người tiếp theo sau mỗi chu kỳ',
+                  style: TextStyle(fontSize: 13, color: kGreyText),
+                ),
+                const SizedBox(height: 12),
                 if (_autoRotate) ...[
-                  const SizedBox(height: 16),
                   const Text(
                     'Chọn thành viên tham gia xoay vòng',
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
-                  ..._members.keys.map((name) {
-                    return CheckboxListTile(
-                      value: _members[name],
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      onChanged: (v) =>
-                          setState(() => _members[name] = v ?? false),
-                      title: Text(name),
-                      controlAffinity: ListTileControlAffinity.leading,
-                      activeColor: kPrimaryGreen,
-                    );
-                  }),
-                  const SizedBox(height: 12),
+                  Column(
+                    children: _members.keys.map((name) {
+                      final bool checked = _members[name]!;
+                      return CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        visualDensity: const VisualDensity(
+                          horizontal: -4,
+                          vertical: -4,
+                        ),
+                        value: checked,
+                        onChanged: (value) {
+                          setState(() {
+                            _members[name] = value ?? false;
+                          });
+                        },
+                        title: Text(name, style: const TextStyle(fontSize: 14)),
+                        controlAffinity: ListTileControlAffinity.leading,
+                        activeColor: kPrimaryGreen,
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 8),
                   const Text(
                     'Thứ tự xoay vòng:',
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                   ),
-                  Text(orderText),
+                  const SizedBox(height: 4),
+                  Text(orderText, style: const TextStyle(fontSize: 14)),
                 ],
               ],
             ),
           ),
-
           const SizedBox(height: 12),
-
-          // ẨN PHÂN CÔNG KHI AUTO ROTATE = TRUE
-          if (!_autoRotate)
-            _InputCard(
-              label: 'Phân công cho',
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _assignedMember,
-                  isExpanded: true,
-                  hint: const Text('Chọn thành viên'),
-                  items: _members.keys
-                      .map((m) => DropdownMenuItem(value: m, child: Text(m)))
-                      .toList(),
-                  onChanged: (v) => setState(() => _assignedMember = v),
+          _InputCard(
+            label: 'Phân công cho',
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _assignedMember,
+                isExpanded: true,
+                hint: const Text(
+                  'Chọn thành viên',
+                  style: TextStyle(fontSize: 14, color: kGreyText),
                 ),
+                icon: const Icon(Icons.expand_more, color: kGreyText),
+                style: const TextStyle(fontSize: 14, color: Colors.black),
+                items: _members.keys
+                    .map(
+                      (name) => DropdownMenuItem<String>(
+                        value: name,
+                        child: Text(name),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _assignedMember = value;
+                  });
+                },
               ),
             ),
-
+          ),
           const SizedBox(height: 20),
-
           SizedBox(
             height: 52,
             width: double.infinity,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: kPrimaryGreen,
+                foregroundColor: Colors.black,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
-                elevation: 0,
-              ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const CreateChoreSuccessPage(),
-                  ),
-                );
-              },
-              child: const Text(
-                'Tạo việc nhà',
-                style: TextStyle(
+                textStyle: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white,
                 ),
               ),
+              onPressed: () {},
+              child: const Text('Tạo việc nhà'),
             ),
           ),
         ],
@@ -402,11 +383,14 @@ class _CreateChorePageState extends State<CreateChorePage> {
   }
 
   String _buildOrderText() {
-    final selected = _members.entries
+    final List<String> selected = _members.entries
         .where((e) => e.value)
         .map((e) => e.key)
         .toList();
-    return selected.isEmpty ? 'Chưa chọn thành viên' : selected.join(' ➝ ');
+    if (selected.isEmpty) {
+      return 'Chưa chọn thành viên';
+    }
+    return selected.join(' ➝ ');
   }
 }
 
@@ -423,7 +407,11 @@ class _InputCard extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF4A4A4A),
+          ),
         ),
         const SizedBox(height: 6),
         Container(
@@ -432,10 +420,36 @@ class _InputCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: const Color(0xFFE3E5EA)),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: child,
         ),
       ],
+    );
+  }
+}
+
+class _DateField extends StatelessWidget {
+  const _DateField({required this.text, required this.onTap});
+
+  final String text;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 14, color: Colors.black),
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Icon(Icons.calendar_today_outlined, size: 18, color: kGreyText),
+        ],
+      ),
     );
   }
 }

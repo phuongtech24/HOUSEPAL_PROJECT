@@ -1,5 +1,12 @@
+import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../data/datasources/auth_service.dart'; // Import AuthService
+import '../widgets/auth_label.dart';       
+import '../widgets/auth_text_field.dart';  
+import '../widgets/primary_button.dart';   
+import 'complete_profile_page.dart';
+import 'otp_verification_page.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -9,19 +16,82 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  // Controller
   final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
+  final _contactController = TextEditingController();
   final _passwordController = TextEditingController();
   
-  bool _isObscure = true; // Ẩn/hiện mật khẩu
+  final AuthService _authService = AuthService(); // Khởi tạo Service
+  bool _isObscure = true;
+  bool _isLoading = false; // Biến trạng thái loading
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
+  bool _isPhoneNumber(String input) {
+    final RegExp phoneRegex = RegExp(r'^[0-9]{9,}$');
+    return phoneRegex.hasMatch(input);
+  }
+
+  Future<void> _handleRegister() async {
+    final name = _nameController.text.trim();
+    final contact = _contactController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (name.isEmpty || contact.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Vui lòng nhập đủ thông tin"))
+      );
+      return;
+    }
+
+    bool isPhone = _isPhoneNumber(contact);
+
+    setState(() => _isLoading = true); // Bắt đầu loading
+
+    if (isPhone) {
+      // --- Xử lý cho SĐT (Tạm thời giữ nguyên logic điều hướng) ---
+      setState(() => _isLoading = false);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => OtpVerificationPage(
+            phoneNumber: contact,
+            nextPage: CompleteProfilePage(
+              initialName: name,
+              initialPhone: contact,
+              initialPassword: password,
+              isPhoneRegistered: true,
+            ),
+          ),
+        ),
+      );
+    } else {
+      // --- Xử lý cho EMAIL (Kết nối Firebase thật) ---
+      try {
+        // 1. Gọi Firebase Auth tạo tài khoản
+        await _authService.registerWithEmail(contact, password);
+        
+        setState(() => _isLoading = false);
+        
+        // 2. Thành công -> Chuyển sang trang Hoàn tất hồ sơ
+        if (mounted) {
+           Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CompleteProfilePage(
+                initialName: name,
+                initialEmail: contact,
+                initialPassword: password,
+                isPhoneRegistered: false,
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        setState(() => _isLoading = false);
+        // Hiển thị lỗi từ Firebase (ví dụ: email đã tồn tại, pass yếu...)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Đăng ký thất bại: ${e.toString()}"))
+        );
+      }
+    }
   }
 
   @override
@@ -29,12 +99,10 @@ class _RegisterPageState extends State<RegisterPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        // Nút back
+        backgroundColor: Colors.white, elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back, color: Colors.black), 
+          onPressed: () => Navigator.pop(context)
         ),
       ),
       body: SafeArea(
@@ -43,205 +111,48 @@ class _RegisterPageState extends State<RegisterPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 1. Logo & Header
               Center(
                 child: Column(
                   children: [
                     const Icon(Icons.home_work_rounded, size: 60, color: AppColors.primary),
                     const SizedBox(height: 12),
-                    const Text(
-                      "Chào mừng đến với HousePal",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 22, 
-                        fontWeight: FontWeight.bold, 
-                        color: AppColors.textBlack
-                      ),
-                    ),
+                    const Text("Chào mừng đến với HousePal", textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textBlack)),
                     const SizedBox(height: 8),
-                    const Text(
-                      "Tạo tài khoản để bắt đầu quản lý ngôi nhà của bạn",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
+                    const Text("Tạo tài khoản để bắt đầu quản lý ngôi nhà của bạn", textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Colors.grey)),
                   ],
                 ),
               ),
               const SizedBox(height: 32),
 
-              // 2. Form Nhập liệu
-              _buildLabel("Họ và tên"),
-              _buildTextField(
-                controller: _nameController, 
-                hint: "Nhập họ và tên của bạn"
-              ),
+              const AuthLabel(text: "Họ và tên"),
+              AuthTextField(controller: _nameController, hintText: "Nhập họ và tên của bạn"),
+              
               const SizedBox(height: 16),
-
-              _buildLabel("Email hoặc Số điện thoại"),
-              _buildTextField(
-                controller: _emailController, 
-                hint: "Nhập email hoặc số điện thoại"
-              ),
+              const AuthLabel(text: "Email hoặc Số điện thoại"),
+              AuthTextField(controller: _contactController, hintText: "Nhập email hoặc số điện thoại"),
+              
               const SizedBox(height: 16),
-
-              _buildLabel("Mật khẩu"),
-              _buildTextField(
-                controller: _passwordController, 
-                hint: "Tạo mật khẩu của bạn",
+              const AuthLabel(text: "Mật khẩu"),
+              AuthTextField(
+                controller: _passwordController,
+                hintText: "Tạo mật khẩu của bạn",
                 isPassword: true,
                 isObscure: _isObscure,
                 onToggleObscure: () => setState(() => _isObscure = !_isObscure),
               ),
               
               const SizedBox(height: 24),
-
-              // 3. Nút Đăng ký
-              SizedBox(
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // TODO: Logic Đăng ký Firebase
-                    // Sau khi đăng ký xong -> Vào App (Expenses)
-                    Navigator.pushNamedAndRemoveUntil(context, '/expenses', (route) => false);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    "Đăng ký", 
-                    style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // 4. Điều khoản (Text Rich)
-              const Text.rich(
-                TextSpan(
-                  text: "Bằng việc đăng ký, bạn đồng ý với ",
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                  children: [
-                    TextSpan(
-                      text: "Điều khoản Dịch vụ",
-                      style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
-                    ),
-                    TextSpan(text: " và "),
-                    TextSpan(
-                      text: "Chính sách Bảo mật",
-                      style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
-                    ),
-                    TextSpan(text: " của chúng tôi."),
-                  ],
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 24),
-
-              // 5. Hoặc đăng nhập với...
-              const Row(
-                children: [
-                  Expanded(child: Divider()),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text("Hoặc đăng nhập với", style: TextStyle(color: Colors.grey, fontSize: 12)),
-                  ),
-                  Expanded(child: Divider()),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // Social Buttons (Giả lập Icon)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildSocialButton(Icons.g_mobiledata, Colors.red), // Google
-                  const SizedBox(width: 20),
-                  _buildSocialButton(Icons.facebook, Colors.blue),    // Facebook
-                  const SizedBox(width: 20),
-                  _buildSocialButton(Icons.apple, Colors.black),      // Apple
-                ],
-              ),
-
-              const SizedBox(height: 32),
               
-              // 6. Footer: Đã có tài khoản?
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text("Đã có tài khoản? ", style: TextStyle(color: Colors.grey)),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pop(context); // Quay về trang Login
-                    },
-                    child: const Text(
-                      "Đăng nhập",
-                      style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
+              // Nút bấm có hiệu ứng loading
+              _isLoading 
+                  ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                  : PrimaryButton(text: "Đăng ký", onPressed: _handleRegister),
+              
+              const SizedBox(height: 16),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  // --- Helper Widgets ---
-
-  Widget _buildLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF2D3436))),
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller, 
-    required String hint, 
-    bool isPassword = false,
-    bool isObscure = false,
-    VoidCallback? onToggleObscure,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: TextField(
-        controller: controller,
-        obscureText: isPassword ? isObscure : false,
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          suffixIcon: isPassword 
-            ? IconButton(
-                icon: Icon(isObscure ? Icons.visibility_off : Icons.visibility, color: Colors.grey),
-                onPressed: onToggleObscure,
-              )
-            : null,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSocialButton(IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.grey.shade300),
-        color: Colors.white,
-      ),
-      child: Icon(icon, color: color, size: 28),
     );
   }
 }

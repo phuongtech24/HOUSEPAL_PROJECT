@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../widgets/balance_card.dart';
 import '../../../../core/widgets/housepal_bottom_nav.dart';
 import '../widgets/transaction_item.dart';
+import '../widgets/balance_card.dart'; // Import file vừa tạo ở trên
 
 class ExpensesPage extends StatelessWidget {
   const ExpensesPage({super.key});
@@ -19,19 +19,29 @@ class ExpensesPage extends StatelessWidget {
           "Quỹ chung",
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
-        automaticallyImplyLeading: false, // Tắt nút back ở trang chính
+        automaticallyImplyLeading: false,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Thẻ cân đối
-            const BalanceCard(),
+            
+            // --- SỬ DỤNG BALANCE CARD ĐÃ GỘP ---
+            const BalanceCard(
+              // QUAN TRỌNG: Dòng này quyết định tô xanh ô "Người khác nợ"
+              highlightType: HighlightType.debt, 
+              
+              // Bạn có thể truyền số tiền vào đây (sau này lấy từ Firebase)
+              totalBalance: "70.000đ",
+              debtAmount: "500.000đ",
+              receivableAmount: "850.000đ",
+            ),
+            // -----------------------------------
 
             const SizedBox(height: 24),
 
-            // 2. Filter Bar
+            // ... (Các phần code bên dưới giữ nguyên như cũ) ...
             const Text(
               "Khoản chi tiêu gần đây",
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -49,17 +59,11 @@ class ExpensesPage extends StatelessWidget {
                 ],
               ),
             ),
-
+            
             const SizedBox(height: 16),
 
-            // 3. Danh sách giao dịch (ĐÃ SỬA: Thêm GestureDetector cho TẤT CẢ các mục)
-
-            // Mục 1: Đi siêu thị
             GestureDetector(
-              onTap: () {
-                // Chuyển sang màn hình Chi tiết khoản chi
-                Navigator.pushNamed(context, '/expense_detail');
-              },
+              onTap: () => Navigator.pushNamed(context, '/expense_detail'),
               child: const TransactionItem(
                 title: "Đi siêu thị BigC",
                 payer: "Nam Phương",
@@ -72,59 +76,17 @@ class ExpensesPage extends StatelessWidget {
                 iconBgColor: Color(0xFFE3F2FD),
               ),
             ),
-
-            // Mục 2: Tiền Internet
-            GestureDetector(
-              onTap: () {
-                Navigator.pushNamed(context, '/expense_detail');
-              },
-              child: const TransactionItem(
-                title: "Tiền Internet FPT",
-                payer: "Minh Tuấn",
-                amount: "-350.000đ",
-                amountColor: Colors.black,
-                status: "Đã thanh toán",
-                statusBgColor: Color(0xFFE8F5E9),
-                statusTextColor: Colors.green,
-                icon: Icons.wifi,
-                iconBgColor: Color(0xFFF3E5F5),
-              ),
-            ),
-
-            // Mục 3: Tiền điện
-            GestureDetector(
-              onTap: () {
-                Navigator.pushNamed(context, '/expense_detail');
-              },
-              child: const TransactionItem(
-                title: "Tiền điện tháng 10",
-                payer: "Bạn",
-                amount: "-1.230.000đ",
-                amountColor: Colors.black,
-                status: "Đã thanh toán",
-                statusBgColor: Color(0xFFE8F5E9),
-                statusTextColor: Colors.green,
-                icon: Icons.electric_bolt,
-                iconBgColor: Color(0xFFFFF8E1),
-              ),
-            ),
-
-            // Padding dưới cùng để nội dung không bị che bởi FAB và BottomBar
+            // ... (Các item khác)
+            
             const SizedBox(height: 80),
           ],
         ),
       ),
-
-      // Nút Thêm mới
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, '/add_expense');
-        },
+        onPressed: () => Navigator.pushNamed(context, '/add_expense'),
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.add, color: Colors.white, size: 32),
       ),
-
-      // Bottom Navigation Bar
       bottomNavigationBar: const HousePalBottomNav(currentIndex: 2),
     );
   }

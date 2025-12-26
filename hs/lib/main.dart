@@ -1,8 +1,14 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-// import 'package:firebase_core/firebase_core.dart';
+import 'package:hs/features/bulletin_board/presentation/pages/add_bulletin_page.dart';
+import 'package:hs/features/bulletin_board/presentation/pages/bulletin_board_page.dart';
+import 'package:hs/features/profile/presentation/pages/profile_page.dart';
+import 'package:hs/firebase_options.dart';
+// import 'package:firebase_core/firebase_core.dart'; 
 
 import 'core/constants/app_colors.dart';
+import 'package:provider/provider.dart';
 
 // --- 1. AUTHENTICATION (Xác thực) ---
 import 'features/authentication/presentation/pages/login_page.dart';
@@ -15,6 +21,7 @@ import 'features/house_setup/presentation/pages/join_house_page.dart';
 import 'features/house_setup/presentation/pages/create_house_page.dart';
 import 'features/house_setup/presentation/pages/house_management_page.dart';
 
+
 // --- 4. EXPENSES (Quỹ chung) ---
 import 'features/expenses/presentation/pages/expenses_page.dart';
 import 'features/expenses/presentation/pages/add_expense_page.dart';
@@ -23,26 +30,27 @@ import 'features/expenses/presentation/pages/expense_detail_page.dart';
 
 // 5. Chores and home
 import 'features/homes/presentation/home_page.dart';
-import 'features/homes/presentation/admin_home_page.dart';
 import 'features/chores/presentation/pages/chores_page.dart';
 import 'features/chores/presentation/pages/create_chore_page.dart';
 import 'features/chores/presentation/pages/chores_ranking_page.dart';
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  
   // if (Platform.isAndroid || Platform.isIOS) {
   //   await Firebase.initializeApp();
   // }
-
+  await Firebase.initializeApp(
+  options: DefaultFirebaseOptions.currentPlatform,
+);
   runApp(
     MultiBlocProvider(
-      providers: [BlocProvider<AuthBloc>(create: (context) => AuthBloc())],
+      providers: [
+        BlocProvider<AuthBloc>(create: (context) => AuthBloc()),
+      ],
       child: const MyApp(),
     ),
   );
 }
-
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -52,7 +60,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'HousePal',
-      theme: ThemeData(
+      theme: ThemeData( 
         primaryColor: AppColors.primary,
         scaffoldBackgroundColor: AppColors.background,
         useMaterial3: true,
@@ -65,12 +73,9 @@ class MyApp extends StatelessWidget {
           surfaceTintColor: Colors.white,
         ),
       ),
-
+      
       // Màn hình khởi động đầu tiên
-
-      // home: const HomePage(),
-      home: const HomePreview(),
-
+      home: const LoginPage(), 
 
       // --- DANH SÁCH ROUTES TOÀN BỘ DỰ ÁN ---
       routes: {
@@ -83,60 +88,37 @@ class MyApp extends StatelessWidget {
         '/join_house': (context) => const JoinHousePage(),
         '/create_house': (context) => const CreateHousePage(),
 
+        
+        
         // --- Expenses ---
         '/expenses': (context) => const ExpensesPage(),
         '/add_expense': (context) => const AddExpensePage(),
         '/debt_optimization': (context) => const DebtOptimizationPage(),
-        '/expense_detail': (context) =>
-            const ExpenseDetailPage(), // Chi tiết chi tiêu
-
+        '/expense_detail': (context) => const ExpenseDetailPage(), // Chi tiết chi tiêu
+        
+       
         '/house_management': (context) => const HouseManagementPage(),
 
         // --- Home ---
         '/home': (context) => const HomePage(),
-        '/admin_home': (context) => const AdminHomePage(),
 
         // --- Chores ---
         '/chores': (context) => const ChoresPage(),
         '/chores/new': (context) => const CreateChorePage(),
         '/chores/ranking': (context) => const ChoresRankingPage(),
+
+        '/bulletin_board': (context) => const BulletinBoardPage(),
+        '/profile': (context) => const ProfilePage(),
+        '/add_bulletin': (context) => const AddBulletinPage(),
       },
-
-      // onGenerateRoute: (settings) => MaterialPageRoute(
-      //     builder: (context) => Scaffold(
-      //       body: Center(
-      //         child: Text('No route defined for ${settings.name}'),
-      //       ),
-      //     ),
-      //   ),
-    );
-  }
-}
-//tam thoi
-class HomePreview extends StatefulWidget {
-  const HomePreview({super.key});
-
-  @override
-  State<HomePreview> createState() => _HomePreviewState();
-}
-
-class _HomePreviewState extends State<HomePreview> {
-  bool isAdmin = true;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        isAdmin ? const AdminHomePage() : const HomePage(),
-        Positioned(
-          top: 16,
-          right: 16,
-          child: FloatingActionButton.small(
-            onPressed: () => setState(() => isAdmin = !isAdmin),
-            child: const Icon(Icons.swap_horiz),
-          ),
-        ),
-      ],
+      
+    // onGenerateRoute: (settings) => MaterialPageRoute(
+    //     builder: (context) => Scaffold(
+    //       body: Center(
+    //         child: Text('No route defined for ${settings.name}'),
+    //       ),
+    //     ),
+    //   ),
     );
   }
 }
