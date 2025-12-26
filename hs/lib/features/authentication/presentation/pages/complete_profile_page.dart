@@ -1,11 +1,11 @@
-import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../data/datasources/auth_service.dart'; // Import AuthService
+import '../../data/datasources/auth_service.dart';
 import '../widgets/auth_label.dart';       
 import '../widgets/auth_text_field.dart';  
 import '../widgets/primary_button.dart';   
-import 'otp_verification_page.dart';
 
 class CompleteProfilePage extends StatefulWidget {
   final String initialName;
@@ -33,9 +33,24 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   final TextEditingController _dobController = TextEditingController();
   final TextEditingController _bioController = TextEditingController();
   
-  final AuthService _authService = AuthService(); // Khởi tạo Service
+  final AuthService _authService = AuthService();
+  
   String _selectedGender = "Nam";
-  bool _isLoading = false; // Biến trạng thái loading
+  bool _isLoading = false;
+
+  // 1. KHAI BÁO DANH SÁCH ẢNH CÓ SẴN (Theo Cách 2: Đường dẫn đầy đủ trong lib)
+  // Bạn hãy chắc chắn đã khai báo dòng này trong pubspec.yaml:
+  // assets:
+  //   - lib/core/assets/avatars/
+  final List<String> _avatarAssets = [
+    'lib/core/assets/avatars/meo.jpg',
+    'lib/core/assets/avatars/meo1.jpg',
+    'lib/core/assets/avatars/meo2.jpg',
+    'lib/core/assets/avatars/meo3.jpg',
+  ];
+
+  // Mặc định chọn ảnh đầu tiên (meo.jpg)
+  int _selectedIndex = 0; 
 
   @override
   void initState() {
@@ -46,11 +61,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
 
   Future<void> _onFinish() async {
     // 1. Validate dữ liệu
-    print("DEBUG: Nút đã được bấm!");
     final missingInfo = _missingInfoController.text.trim();
-    final dob = _dobController.text.trim();
-    final bio = _bioController.text.trim();
-
     if (missingInfo.isEmpty) {
        ScaffoldMessenger.of(context).showSnackBar(
          SnackBar(content: Text("Vui lòng nhập ${widget.isPhoneRegistered ? 'Email' : 'Số điện thoại'}"))
@@ -58,49 +69,44 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
        return;
     }
 
-    // 2. Xử lý logic theo luồng
-    if (widget.isPhoneRegistered) {
-       // --- TRƯỜNG HỢP SĐT (Đã OTP xong -> Lưu Data) ---
-       // Logic này giả định bạn đã verify phone và user đã được tạo
-       // Tạm thời chỉ điều hướng
-       Navigator.pushNamedAndRemoveUntil(context, '/welcome', (route) => false);
-    } else {
-       // --- TRƯỜNG HỢP EMAIL (Đã Đăng ký Auth xong -> Cần verify Phone -> Lưu Data) ---
-       // Lưu ý: Để đơn giản hóa, mình sẽ LƯU DATA LUÔN mà không qua OTP Phone.
-       // Nếu bạn muốn OTP Phone thì logic sẽ phức tạp hơn.
-       // Dưới đây là code LƯU DATA VÀO FIRESTORE:
-       
-       setState(() => _isLoading = true);
+    setState(() => _isLoading = true);
 
-       try {
-         // Lấy user hiện tại (vừa đăng ký ở bước trước)
-         final user = _authService.currentUser;
-         if (user == null) throw Exception("Không tìm thấy người dùng");
+    try {
+      final user = _authService.currentUser; // Hoặc FirebaseAuth.instance.currentUser
+      if (user == null) throw Exception("Không tìm thấy người dùng (Vui lòng đăng nhập lại)");
 
-         // Gọi Service lưu vào Firestore
-         await _authService.saveUserData(
-            uid: user.uid,
-            name: widget.initialName,
-            email: widget.initialEmail!,
-            phoneNumber: missingInfo, // SĐT người dùng nhập thêm
-            dob: dob,
-            gender: _selectedGender,
-            bio: bio,
-         );
+      // 2. LẤY ĐƯỜNG DẪN ẢNH ĐANG ĐƯỢC CHỌN
+      String chosenAvatarPath = _avatarAssets[_selectedIndex];
 
-         setState(() => _isLoading = false);
+      // 3. LƯU THÔNG TIN VÀO FIRESTORE
+      // Lưu ý: Chúng ta lưu thẳng đường dẫn 'lib/core/...' vào avatarUrl
+      await _authService.saveUserData(
+        uid: user.uid,
+        name: widget.initialName,
+        email: widget.initialEmail ?? user.email ?? "",
+        phoneNumber: widget.isPhoneRegistered ? (widget.initialPhone ?? "") : missingInfo,
+        dob: _dobController.text.trim(),
+        gender: _selectedGender,
+        bio: _bioController.text.trim(),
+      );
 
-         // Thành công -> Vào App chính
-         if (mounted) {
-           Navigator.pushNamedAndRemoveUntil(context, '/welcome', (route) => false);
-         }
+      // Update riêng trường avatarUrl (để chắc chắn nó được lưu)
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+        'avatarUrl': chosenAvatarPath,
+      });
 
-       } catch (e) {
-         setState(() => _isLoading = false);
-         ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(content: Text("Lỗi lưu hồ sơ: ${e.toString()}"))
-         );
-       }
+      setState(() => _isLoading = false);
+
+      // 4. CHUYỂN MÀN HÌNH
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, '/welcome', (route) => false);
+      }
+
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Lỗi: ${e.toString()}"))
+      );
     }
   }
 
@@ -123,25 +129,58 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Center(child: Text("Thêm ảnh đại diện để mọi người dễ\nnhận ra bạn nhé", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey))),
+            const Center(child: Text("Chọn một ảnh đại diện yêu thích nhé", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey))),
             const SizedBox(height: 20),
             
-            // Avatar Picker
+            // --- UI 1: ẢNH ĐANG ĐƯỢC CHỌN (TO) ---
             Center(
-              child: Stack(
+              child: Column(
                 children: [
-                  const CircleAvatar(radius: 50, backgroundColor: Color(0xFFFFE0B2), child: Icon(Icons.person, size: 60, color: Colors.white)),
-                  Positioned(
-                    bottom: 0, right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
-                      child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
-                    ),
-                  )
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Colors.grey[200],
+                    // Hiển thị ảnh từ Assets
+                    backgroundImage: AssetImage(_avatarAssets[_selectedIndex]),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text("Ảnh hiển thị", style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
+            const SizedBox(height: 20),
+
+            // --- UI 2: DANH SÁCH ẢNH ĐỂ CHỌN (LIST NGANG) ---
+            SizedBox(
+              height: 80, // Chiều cao list
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _avatarAssets.length,
+                separatorBuilder: (context, index) => const SizedBox(width: 16),
+                itemBuilder: (context, index) {
+                  final bool isSelected = index == _selectedIndex;
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() => _selectedIndex = index); // Cập nhật ảnh được chọn
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(3), // Viền
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        // Nếu đang chọn -> Viền màu xanh, Không chọn -> Không viền
+                        border: isSelected ? Border.all(color: AppColors.primary, width: 3) : null,
+                      ),
+                      child: CircleAvatar(
+                        radius: 30,
+                        backgroundColor: Colors.grey[200],
+                        backgroundImage: AssetImage(_avatarAssets[index]),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            // ----------------------------------------------------
+
             const SizedBox(height: 30),
 
             AuthLabel(text: missingLabel),
@@ -199,7 +238,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
             ),
             const SizedBox(height: 30),
 
-            // Nút bấm có loading
+            // Nút bấm
             _isLoading
                 ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
                 : PrimaryButton(text: "Bắt đầu ngay ->", onPressed: _onFinish),
@@ -209,5 +248,3 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
     );
   }
 }
-
-// Widget giả _NavigateToWelcome không cần thiết nữa vì ta điều hướng trực tiếp trong hàm _onFinish

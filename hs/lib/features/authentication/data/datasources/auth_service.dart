@@ -15,10 +15,11 @@ class AuthService {
       );
       return result.user;
     } on FirebaseAuthException catch (e) {
-      throw Exception(e.message); // Ném lỗi ra để UI hiển thị
+      throw Exception(e.message);
     }
   }
-  // 3. Đăng nhập bằng Email & Password
+
+  // 2. Đăng nhập bằng Email & Password
   Future<User?> loginWithEmail(String email, String password) async {
     try {
       UserCredential result = await _auth.signInWithEmailAndPassword(
@@ -27,7 +28,6 @@ class AuthService {
       );
       return result.user;
     } on FirebaseAuthException catch (e) {
-      // Xử lý các lỗi phổ biến để báo cho người dùng dễ hiểu
       if (e.code == 'user-not-found') {
         throw Exception('Không tìm thấy tài khoản với email này.');
       } else if (e.code == 'wrong-password') {
@@ -41,41 +41,50 @@ class AuthService {
       throw Exception('Lỗi không xác định: $e');
     }
   }
-  // 2. Lưu thông tin User vào Firestore (Sau khi hoàn tất hồ sơ)
+
+  // 3. Lưu thông tin User vào Firestore (SỬA LẠI ĐOẠN NÀY)
   Future<void> saveUserData({
-  required String uid,
-  required String name,
-  required String email,
-  required String phoneNumber,
-  String dob = '',
-  String gender = 'Khác',
-  String bio = '',
-}) async {
-  try {
-    print("--- BẮT ĐẦU LƯU USER ---"); // 1. Kiểm tra xem hàm có được gọi không
-    print("UID: $uid");
+    required String uid,
+    required String name,
+    required String email,
+    required String phoneNumber,
+    String dob = '',
+    String gender = 'Khác',
+    String bio = '',
+  }) async {
+    try {
+      print("--- BẮT ĐẦU LƯU USER ---");
+      print("UID: $uid");
 
-    final newUser = UserModel(
-      uid: uid,
-      name: name,
-      email: email,
-      phoneNumber: phoneNumber,
-      dob: dob,
-      gender: gender,
-      bio: bio,
-      createdAt: DateTime.now(),
-    );
+      // Cập nhật UserModel với đầy đủ các trường mới
+      final newUser = UserModel(
+        uid: uid,
+        name: name,
+        email: email,
+        phoneNumber: phoneNumber,
+        dob: dob,
+        gender: gender,
+        bio: bio,
+        createdAt: DateTime.now(),
+        
+        // --- CÁC TRƯỜNG MỚI BỔ SUNG (Quan trọng) ---
+        houseId: '',         // Mặc định rỗng (chưa vào nhà nào)
+        role: 'member',      // Mặc định là thành viên
+        currentPoints: 0,    // Điểm ban đầu là 0
+        fcmToken: '',        // Token thông báo (cập nhật sau)
+        avatarUrl: '',       // Avatar mặc định rỗng
+      );
 
-    // Lưu vào collection 'users'
-    await _firestore.collection('users').doc(uid).set(newUser.toMap());
-    
-    print("--- LƯU THÀNH CÔNG! ---"); // 2. Nếu thấy dòng này là ngon
-  } catch (e) {
-    print("--- LỖI RỒI: $e ---"); // 3. Nếu thấy dòng này thì xem lỗi là gì
-    throw Exception("Không thể lưu thông tin người dùng: $e");
+      // Lưu vào collection 'users'
+      await _firestore.collection('users').doc(uid).set(newUser.toMap());
+
+      print("--- LƯU THÀNH CÔNG! ---");
+    } catch (e) {
+      print("--- LỖI RỒI: $e ---");
+      throw Exception("Không thể lưu thông tin người dùng: $e");
+    }
   }
-}
-  
+
   // Hàm lấy user hiện tại
   User? get currentUser => _auth.currentUser;
 }

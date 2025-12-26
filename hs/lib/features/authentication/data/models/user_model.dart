@@ -8,11 +8,11 @@ class UserModel {
   final String dob;
   final String gender;
   final String bio;
-  final String avatarUrl;      // Mới
-  final String houseId;        // Mới (Quan trọng nhất)
-  final String role;           // Mới ('admin' hoặc 'member')
-  final int currentPoints;     // Mới (Game hóa)
-  final String fcmToken;       // Mới (Thông báo)
+  final String avatarUrl;     
+  final String houseId;        
+  final String role;           
+  final int currentPoints;     
+  final String fcmToken;       
   final DateTime createdAt;
 
   UserModel({
