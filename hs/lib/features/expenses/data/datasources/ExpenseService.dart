@@ -6,6 +6,7 @@ class ExpenseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  // 1. Lấy ID nhà của User hiện tại
   Future<String> _getHouseId() async {
     final user = _auth.currentUser;
     if (user == null) throw Exception("Chưa đăng nhập");
@@ -13,15 +14,15 @@ class ExpenseService {
     return userDoc['houseId'];
   }
 
-  // --- SỬA HÀM NÀY ---
+  // 2. Thêm chi tiêu (Code mới bạn đã cập nhật - OK)
   Future<void> addExpense({
     required String title,
     required double amount,
     required String category,
-    required String payerId,           // UI truyền vào ai là người trả
-    required String splitType,         // UI truyền vào kiểu chia ('equal', 'percent', 'exact')
-    required Map<String, double> splitDetails, // UI truyền vào Map đã tính toán sẵn
-    DateTime? date, // Thêm ngày giờ tùy chọn
+    required String payerId,
+    required String splitType,
+    required Map<String, double> splitDetails,
+    DateTime? date,
   }) async {
     final houseId = await _getHouseId();
 
@@ -44,5 +45,59 @@ class ExpenseService {
         .add(expense.toMap());
   }
 
-  // ... (Các hàm getExpensesStream, calculateMyBalance giữ nguyên)
+  // 3. LẤY DANH SÁCH CHI TIÊU (Đây là hàm bạn đang THIẾU)
+  Stream<List<ExpenseModel>> getExpensesStream() async* {
+    try {
+      final houseId = await _getHouseId();
+      
+      // Lắng nghe thay đổi từ collection 'expenses'
+      yield* _firestore
+          .collection('houses')
+          .doc(houseId)
+          .collection('expenses')
+          .orderBy('date', descending: true) // Sắp xếp ngày mới nhất lên đầu
+          .snapshots()
+          .map((snapshot) {
+            return snapshot.docs
+                .map((doc) => ExpenseModel.fromSnapshot(doc))
+                .toList();
+          });
+    } catch (e) {
+      // Nếu lỗi (ví dụ chưa có nhà), trả về danh sách rỗng để app không crash
+      print("Lỗi getExpensesStream: $e");
+      yield [];
+    }
+  }
+  // 4. THANH TOÁN NỢ (SETTLEMENT)
+  // debtorId: Người nợ (Người trả tiền)
+  // creditorId: Chủ nợ (Người nhận tiền)
+  Future<void> settleDebt({
+    required String debtorId,
+    required String creditorId,
+    required double amount,
+  }) async {
+    final houseId = await _getHouseId();
+
+    // Logic: Tạo một khoản chi mới
+    // Người trả (Payer) = Người nợ (debtor)
+    // Người thụ hưởng (Split) = Chủ nợ (creditor) nhận 100% lợi ích
+    
+    final settlement = ExpenseModel(
+      id: '',
+      title: "Thanh toán nợ",
+      amount: amount,
+      payerId: debtorId,
+      category: "Thanh toán", // Category đặc biệt
+      splitType: 'settlement',
+      splitDetails: {creditorId: amount}, // Chủ nợ được hưởng trọn số tiền này
+      date: DateTime.now(),
+      evidenceUrl: '',
+    );
+
+    await _firestore
+        .collection('houses')
+        .doc(houseId)
+        .collection('expenses')
+        .add(settlement.toMap());
+  }
 }

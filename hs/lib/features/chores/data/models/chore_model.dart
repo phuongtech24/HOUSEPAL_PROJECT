@@ -4,13 +4,12 @@ class ChoreModel {
   final String id;
   final String title;
   final String description;
-
-  final String frequency;     
-  final int points;           
-  final String assigneeId;    
-  final String nextAssigneeId; 
+  final String frequency;     // 'daily', 'weekly', 'monthly'
+  final int points;           // FR1.4
+  final String assigneeId;    // Người làm hiện tại
+  final String nextAssigneeId; // Người làm tiếp theo
   final DateTime dueDate;
-  final String status;          
+  final String status;        // 'pending', 'completed'
 
   ChoreModel({
     required this.id,

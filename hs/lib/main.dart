@@ -1,9 +1,9 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hs/features/bulletin_board/presentation/pages/add_bulletin_page.dart';
-import 'package:hs/features/bulletin_board/presentation/pages/bulletin_board_page.dart';
-import 'package:hs/features/profile/presentation/pages/profile_page.dart';
+// import 'package:hs/features/bulletin_board/presentation/pages/add_bulletin_page.dart';
+// import 'package:hs/features/bulletin_board/presentation/pages/bulletin_board_page.dart';
+// import 'package:hs/features/profile/presentation/pages/profile_page.dart';
 import 'package:hs/firebase_options.dart';
 // import 'package:firebase_core/firebase_core.dart'; 
 
@@ -107,9 +107,9 @@ class MyApp extends StatelessWidget {
         '/chores/new': (context) => const CreateChorePage(),
         '/chores/ranking': (context) => const ChoresRankingPage(),
 
-        '/bulletin_board': (context) => const BulletinBoardPage(),
-        '/profile': (context) => const ProfilePage(),
-        '/add_bulletin': (context) => const AddBulletinPage(),
+        //'/bulletin_board': (context) => const BulletinBoardPage(),
+        //'/profile': (context) => const ProfilePage(),
+        //'/add_bulletin': (context) => const AddBulletinPage(),
       },
       
     // onGenerateRoute: (settings) => MaterialPageRoute(
