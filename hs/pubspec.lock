@@ -200,8 +200,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.2"
-<<<<<<< HEAD
-=======
   intl:
     dependency: "direct main"
     description:
@@ -210,7 +208,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.19.0"
->>>>>>> Phuong
   leak_tracker:
     dependency: transitive
     description:
