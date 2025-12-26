@@ -14,7 +14,7 @@ class CreateChoreSuccessPage extends StatelessWidget {
           children: [
             const Spacer(),
 
-            // ICON SUCCESS
+            // SUCCESS ICON
             Container(
               width: 96,
               height: 96,
@@ -31,7 +31,6 @@ class CreateChoreSuccessPage extends StatelessWidget {
 
             const SizedBox(height: 24),
 
-
             const Text(
               'Việc nhà đã được tạo\nthành công!',
               textAlign: TextAlign.center,
@@ -42,7 +41,6 @@ class CreateChoreSuccessPage extends StatelessWidget {
             ),
 
             const SizedBox(height: 8),
-
 
             const Text(
               'Mọi người trong nhà đã nhận được\nthông báo này.',
@@ -55,7 +53,7 @@ class CreateChoreSuccessPage extends StatelessWidget {
 
             const Spacer(),
 
-
+            // ===== BUTTON: VIEW CHORES =====
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: SizedBox(
@@ -69,11 +67,9 @@ class CreateChoreSuccessPage extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {
-
-                    Navigator.popUntil(
-                      context,
-                      (route) => route.isFirst,
-                    );
+                    // ❗ QUAN TRỌNG
+                    Navigator.pop(context); // đóng success page
+                    Navigator.pushReplacementNamed(context, '/chores');
                   },
                   child: const Text(
                     'Xem việc nhà',
@@ -89,6 +85,7 @@ class CreateChoreSuccessPage extends StatelessWidget {
 
             const SizedBox(height: 12),
 
+            // ===== BUTTON: CLOSE =====
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: SizedBox(
