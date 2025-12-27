@@ -63,7 +63,7 @@ class _ChoresRankingPageState extends State<ChoresRankingPage> {
                   const CircleAvatar(
                     radius: 32,
                     backgroundImage: AssetImage(
-                      'assets/images/sample_avatar.png',
+                      'lib/core/assets/avatars/meo3.jpg',
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -147,7 +147,7 @@ class _RankingRow extends StatelessWidget {
           const SizedBox(width: 16),
           const CircleAvatar(
             radius: 18,
-            backgroundImage: AssetImage('assets/images/sample_avatar.png'),
+            backgroundImage: AssetImage('lib/core/assets/avatars/meo3.jpg'),
           ),
           const SizedBox(width: 12),
           Expanded(

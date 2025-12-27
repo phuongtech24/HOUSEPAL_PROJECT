@@ -168,7 +168,7 @@ class _LeaderboardItem extends StatelessWidget {
               radius: 22,
               backgroundColor: avatarColor,
               backgroundImage: const AssetImage(
-                'assets/images/sample_avatar.png', // thay bằng ảnh thật
+                'lib/core/assets/avatars/meo3.jpg', // thay bằng ảnh thật
               ),
               onBackgroundImageError: (_, __) {},
             ),
@@ -258,7 +258,7 @@ class ChoreListItem extends StatelessWidget {
             backgroundColor: const Color(0xFFE3E5EA),
             backgroundImage:
                 avatarImage ??
-                const AssetImage('assets/images/sample_avatar.png'),
+                const AssetImage('lib/core/assets/avatars/meo3.jpg'),
             onBackgroundImageError: (_, __) {},
           ),
           const SizedBox(width: 12),
