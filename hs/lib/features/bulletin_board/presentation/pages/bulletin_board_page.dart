@@ -18,7 +18,7 @@ class BulletinBoardPage extends StatefulWidget {
 
 class _BulletinBoardPageState extends State<BulletinBoardPage> {
   final BulletinService _service = BulletinService();
-  int _filterIndex = 0; // 0: Tất cả, 1: Ghi chú, 2: Mua sắm
+  int _filterIndex = 0; // 0: Tất cả, 1: Ghi chú, 2: Mua sắm//
 
   @override
   Widget build(BuildContext context) {

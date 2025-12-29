@@ -17,7 +17,7 @@ class _AddBulletinPageState extends State<AddBulletinPage> with SingleTickerProv
   late TabController _tabController;
   final BulletinService _service = BulletinService();
   
-  // --- Controllers Ghi chú ---
+  // --- Controllers Ghi chú ---//
   final _titleController = TextEditingController();
   final _contentController = TextEditingController(); 
   bool _isPinned = false;

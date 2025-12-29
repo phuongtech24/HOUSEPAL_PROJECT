@@ -7,8 +7,8 @@ class HistoryItemModel {
   final String title;
   final DateTime createdAt;
   final HistoryType type;
-  final String valueDisplay; // Ví dụ: "-500k", "+15 điểm"
-  final bool isNegative;     // True nếu là tiền chi ra
+  final String valueDisplay; 
+  final bool isNegative;     
   
   // Các thuộc tính UI đi kèm
   final IconData icon;

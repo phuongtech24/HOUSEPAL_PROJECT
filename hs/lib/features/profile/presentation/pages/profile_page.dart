@@ -13,7 +13,7 @@ import '../../../house_setup/presentation/pages/manage_house_page.dart';
 import 'package:hs/features/expenses/data/datasources/ExpenseService.dart';
 import 'package:hs/features/expenses/data/models/expense_model.dart';
 
-// --- [MỚI] IMPORT TRANG CHỈNH SỬA HỒ SƠ ---
+// --- [MỚI] IMPORT TRANG CHỈNH SỬA HỒ SƠ
 import 'edit_profile_page.dart'; 
 
 class ProfilePage extends StatelessWidget {

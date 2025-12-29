@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:hs/features/profile/data/models/history_item_mode.dart' show HistoryItemModel, HistoryType;
-import 'package:rxdart/rxdart.dart'; // <--- Thêm dòng này
+import 'package:rxdart/rxdart.dart'; 
 
 class HistoryService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -16,7 +16,7 @@ class HistoryService {
     // 1. Stream Tiền (Expenses) - Chỉ lấy cái user này trả hoặc tham gia
     final expenseStream = _firestore
         .collection('expenses')
-        .where('payerId', isEqualTo: user.uid) // Hoặc logic phức tạp hơn
+        .where('payerId', isEqualTo: user.uid) 
         .snapshots()
         .map((snapshot) => snapshot.docs.map((doc) {
               final data = doc.data();

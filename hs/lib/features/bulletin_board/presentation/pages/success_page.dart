@@ -12,7 +12,7 @@ class SuccessPage extends StatelessWidget {
     required this.previewTitle,
     required this.isNote,
   });
-
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(

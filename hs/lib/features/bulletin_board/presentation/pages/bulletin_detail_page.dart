@@ -4,7 +4,6 @@ import '../../data/models/bulletin_note_model.dart';
 
 class BulletinDetailPage extends StatelessWidget {
   final BulletinNoteModel note;
-
   const BulletinDetailPage({super.key, required this.note});
 
   @override

@@ -19,7 +19,7 @@ class BulletinService {
     return userDoc['houseId'];
   }
 
-  // --- 1. GHI CHÚ (NOTES) ---
+  // 1. GHI CHÚ (NOTES) 
 
   Future<void> addNote(String title, String content, bool isPinned) async {
     final user = _auth.currentUser;
