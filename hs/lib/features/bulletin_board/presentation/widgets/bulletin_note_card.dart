@@ -83,4 +83,3 @@ class BulletinNoteCard extends StatelessWidget {
     return Icons.article;
   }
 }
-// [Update] Temporary logic adjustment
