@@ -66,7 +66,7 @@ class _ChoresPageState extends State<ChoresPage> {
                       );
 
                 return LeaderboardCard(
-                  users: rankedUsers.take(3).toList(), // ✅ HẾT LỖI take(3)
+                  users: rankedUsers.take(3).toList(), // 
                   onTapViewAll: () {
                     Navigator.push(
                       context,
