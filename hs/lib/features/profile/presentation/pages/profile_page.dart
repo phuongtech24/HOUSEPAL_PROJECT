@@ -7,7 +7,12 @@ import '../../../../core/constants/app_colors.dart';
 import '../widgets/profile_header.dart';
 import '../widgets/profile_stat_card.dart';
 import '../widgets/profile_menu_option.dart';
-import 'manage_house_page.dart'; // Import trang mới tạo
+import 'manage_house_page.dart';
+
+// --- IMPORT QUAN TRỌNG: Dùng Service và Model của Expenses ---
+// Hãy chắc chắn đường dẫn này đúng với dự án của bạn
+import 'package:hs/features/expenses/data/datasources/ExpenseService.dart';
+import 'package:hs/features/expenses/data/models/expense_model.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -16,19 +21,44 @@ class ProfilePage extends StatelessWidget {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return {};
     
-    // Lấy User
+    // 1. Lấy thông tin User
     final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-    final userData = userDoc.data()!;
+    if (!userDoc.exists) return {}; 
+    final userData = userDoc.data() ?? {};
     
     String houseName = "Chưa có nhà";
     String inviteCode = "";
+    double finalBalance = 0.0; 
 
-    // Lấy House
+    // 2. Lấy thông tin House
     if (userData['houseId'] != null && userData['houseId'].toString().isNotEmpty) {
-      final houseDoc = await FirebaseFirestore.instance.collection('houses').doc(userData['houseId']).get();
+      final String houseId = userData['houseId'];
+      final houseDoc = await FirebaseFirestore.instance.collection('houses').doc(houseId).get();
+      
       if (houseDoc.exists) {
-        houseName = houseDoc['name'];
-        inviteCode = houseDoc['inviteCode'];
+        final houseData = houseDoc.data() ?? {};
+        houseName = houseData['name'] ?? "Nhà chung"; 
+        inviteCode = houseData['inviteCode'] ?? "";
+
+        // --- DÙNG SERVICE ĐỂ ĐỒNG BỘ DỮ LIỆU VỚI TRANG TỐI ƯU ---
+        try {
+          final expenseService = ExpenseService();
+          
+          // Lấy danh sách chi tiêu từ Stream (lấy snapshot đầu tiên)
+          // Điều này đảm bảo chúng ta dùng đúng bộ dữ liệu như trang DebtOptimizationPage
+          final List<ExpenseModel> expenses = await expenseService.getExpensesStream().first;
+
+          // Áp dụng thuật toán tính toán tối ưu
+          final transactions = _calculateDebts(expenses, user.uid);
+          
+          // Cộng dồn kết quả: Tôi nợ ai (-) hay ai nợ tôi (+)
+          for (var trans in transactions) {
+            finalBalance += (trans['amount'] as num).toDouble();
+          }
+        } catch (e) {
+          debugPrint("Lỗi tính toán Profile: $e");
+          // Nếu lỗi Service, giữ balance = 0 hoặc fallback tùy ý
+        }
       }
     }
 
@@ -36,7 +66,93 @@ class ProfilePage extends StatelessWidget {
       ...userData,
       'houseName': houseName,
       'inviteCode': inviteCode,
+      'calculatedBalance': finalBalance,
     };
+  }
+
+  // --- THUẬT TOÁN COPY TỪ DEBT OPTIMIZATION PAGE ---
+  // Giữ nguyên logic để đảm bảo số liệu khớp 100%
+  List<Map<String, dynamic>> _calculateDebts(List<ExpenseModel> expenses, String myUid) {
+    // 1. Tính số dư ròng (Net Balance)
+    Map<String, double> netBalance = {};
+
+    for (var expense in expenses) {
+      if (expense.splitType == 'settlement') {
+         double amount = expense.amount;
+         String receiverId = expense.splitDetails.keys.isNotEmpty 
+             ? expense.splitDetails.keys.first 
+             : '';
+         
+         if (receiverId.isNotEmpty) {
+             netBalance[expense.payerId] = (netBalance[expense.payerId] ?? 0) + amount;
+             netBalance[receiverId] = (netBalance[receiverId] ?? 0) - amount;
+         }
+         continue;
+      }
+
+      double myShare = expense.splitDetails[expense.payerId] ?? 0;
+      double amountOthersOwe = expense.amount - myShare;
+      
+      netBalance[expense.payerId] = (netBalance[expense.payerId] ?? 0) + amountOthersOwe;
+
+      expense.splitDetails.forEach((uid, amount) {
+        if (uid != expense.payerId) {
+          netBalance[uid] = (netBalance[uid] ?? 0) - amount;
+        }
+      });
+    }
+
+    // 2. Tách nhóm
+    List<MapEntry<String, double>> debtors = [];
+    List<MapEntry<String, double>> creditors = [];
+
+    netBalance.forEach((uid, amount) {
+      // Bộ lọc này là nguyên nhân khiến số liệu lệch nếu tính thủ công
+      if (amount < -100) debtors.add(MapEntry(uid, amount)); 
+      if (amount > 100) creditors.add(MapEntry(uid, amount));
+    });
+
+    debtors.sort((a, b) => a.value.compareTo(b.value)); 
+    creditors.sort((a, b) => b.value.compareTo(a.value)); 
+
+    // 3. Ghép cặp
+    List<Map<String, dynamic>> transactions = [];
+    int i = 0; 
+    int j = 0; 
+
+    while (i < debtors.length && j < creditors.length) {
+      var debtor = debtors[i];
+      var creditor = creditors[j];
+
+      double amount = debtor.value.abs() < creditor.value 
+          ? debtor.value.abs() 
+          : creditor.value;
+
+      // CHỈ LẤY GIAO DỊCH LIÊN QUAN ĐẾN TÔI
+      if (debtor.key == myUid || creditor.key == myUid) {
+         transactions.add({
+          'partnerId': (debtor.key == myUid) ? creditor.key : debtor.key,
+          'amount': (debtor.key == myUid) ? -amount : amount, 
+        });
+      }
+
+      double remainingDebt = debtor.value + amount;     
+      double remainingCredit = creditor.value - amount; 
+
+      if (remainingDebt.abs() < 100) {
+        i++; 
+      } else {
+        debtors[i] = MapEntry(debtor.key, remainingDebt);
+      }
+
+      if (remainingCredit < 100) {
+        j++; 
+      } else {
+        creditors[j] = MapEntry(creditor.key, remainingCredit);
+      }
+    }
+
+    return transactions;
   }
 
   @override
@@ -53,18 +169,26 @@ class ProfilePage extends StatelessWidget {
       body: FutureBuilder<Map<String, dynamic>>(
         future: _getUserData(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          final data = snapshot.data!;
+          if (snapshot.hasError) {
+             return Center(child: Text("Lỗi: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data == null) {
+            return const Center(child: Text("Không có dữ liệu"));
+          }
 
+          final data = snapshot.data!;
           final bool isAdmin = (data['role'] == 'admin');
           final String inviteCode = data['inviteCode'] ?? '';
           final String houseName = data['houseName'] ?? 'Nhà chung';
+          final double balance = data['calculatedBalance'] ?? 0.0;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                // 1. HEADER (Có Badge Role)
                 ProfileHeader(
                   name: data['name'] ?? 'User',
                   email: data['email'] ?? '',
@@ -73,7 +197,6 @@ class ProfilePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 
-                // Nút chỉnh sửa
                 SizedBox(
                   height: 36,
                   child: ElevatedButton.icon(
@@ -85,12 +208,9 @@ class ProfilePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
 
-                // 2. KHU VỰC NHÀ (PHÂN QUYỀN)
                 if (isAdmin) 
-                  // --- GIAO DIỆN ADMIN ---
                   GestureDetector(
                     onTap: () {
-                      // ĐIỀU HƯỚNG SANG TRANG QUẢN LÝ (FRAME 51)
                       Navigator.push(
                         context, 
                         MaterialPageRoute(
@@ -133,7 +253,6 @@ class ProfilePage extends StatelessWidget {
                     ),
                   )
                 else 
-                  // --- GIAO DIỆN MEMBER (GIỐNG FRAME 31) ---
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
@@ -147,11 +266,10 @@ class ProfilePage extends StatelessWidget {
                       children: [
                         const Text("Thông tin nhà", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                         const SizedBox(height: 12),
-                        const Text("Nhà Chung", style: TextStyle(color: Colors.grey, fontSize: 13)), // Hoặc tên thật houseName
+                        Text(houseName, style: const TextStyle(color: Colors.grey, fontSize: 13)),
                         const SizedBox(height: 4),
                         const Text("Vai trò của bạn: Thành viên", style: TextStyle(color: Colors.grey, fontSize: 13)),
                         const SizedBox(height: 12),
-                        // Nút xem Mã nhà
                         Align(
                           alignment: Alignment.centerRight,
                           child: InkWell(
@@ -181,13 +299,14 @@ class ProfilePage extends StatelessWidget {
 
                 const SizedBox(height: 20),
 
-                // 3. THỐNG KÊ (Giữ nguyên)
-                ProfileStatCard(points: data['currentPoints'] ?? 0, debt: -50000), // Mock
+                // Thống kê - Dữ liệu chắc chắn khớp
+                ProfileStatCard(
+                  points: data['currentPoints'] ?? 0, 
+                  debt: balance
+                ),
                 
                 const SizedBox(height: 20),
 
-                // 4. CÀI ĐẶT (Giữ nguyên)
-                // ... Copy lại phần Container Cài đặt từ code trước ...
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200)),
@@ -208,8 +327,6 @@ class ProfilePage extends StatelessWidget {
                 ),
                  const SizedBox(height: 20),
 
-                 // 5. RỜI NHÀ / ĐĂNG XUẤT (Giữ nguyên)
-                 // ... Copy lại phần Tài khoản từ code trước ...
                  Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200)),
@@ -252,7 +369,6 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  // Popup hiển thị mã cho Member
   void _showInviteCodeDialog(BuildContext context, String code) {
     showDialog(
       context: context,

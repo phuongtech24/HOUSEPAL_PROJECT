@@ -4,7 +4,7 @@ class ProfileHeader extends StatelessWidget {
   final String name;
   final String email;
   final String avatarUrl;
-  final String role; // 'admin' hoặc 'member'
+  final String role;
 
   const ProfileHeader({
     super.key,
@@ -17,13 +17,29 @@ class ProfileHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isAdmin = role == 'admin';
+
+    // LOGIC XỬ LÝ ẢNH AN TOÀN
+    ImageProvider? backgroundImage;
+    
+    if (avatarUrl.isNotEmpty && avatarUrl.startsWith('http')) {
+      // 1. Nếu là link online (Firebase Storage, v.v.)
+      backgroundImage = NetworkImage(avatarUrl);
+    } else {
+      // 2. Nếu là đường dẫn cục bộ hoặc rỗng -> Dùng ảnh Mèo mặc định có sẵn trong máy
+      // Lưu ý: Đường dẫn phải khớp chính xác với khai báo trong pubspec.yaml
+      backgroundImage = const AssetImage('lib/core/assets/avatars/meo.jpg');
+    }
+
     return Column(
       children: [
         CircleAvatar(
           radius: 45,
-          backgroundImage: (avatarUrl.isNotEmpty) ? NetworkImage(avatarUrl) : null,
-          backgroundColor: Colors.grey[300],
-          child: (avatarUrl.isEmpty) ? const Icon(Icons.person, size: 50, color: Colors.white) : null,
+          backgroundImage: backgroundImage,
+          backgroundColor: Colors.grey[200],
+          // Thêm handler để nếu ảnh lỗi vẫn hiện icon
+          onBackgroundImageError: (_, __) {
+            // Log lỗi nếu cần
+          },
         ),
         const SizedBox(height: 12),
         Row(
