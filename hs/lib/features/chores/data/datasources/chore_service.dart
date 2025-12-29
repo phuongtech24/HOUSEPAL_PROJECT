@@ -177,4 +177,30 @@ Future<List<UserModel>> getMonthlyRanking() async {
       .map((e) => UserModel.fromMap(e.data()))
       .toList();
 }
+  ///  STREAM RANKING – dùng cho LeaderboardCard (Việc nhà)
+  Stream<List<UserModel>> getHouseRankingStream({int limit = 3}) async* {
+    final uid = _auth.currentUser!.uid;
+
+    final userDoc =
+        await _firestore.collection('users').doc(uid).get();
+
+    if (!userDoc.exists) {
+      yield [];
+      return;
+    }
+
+    final houseId = userDoc['houseId'];
+
+    yield* _firestore
+        .collection('users')
+        .where('houseId', isEqualTo: houseId)
+        .orderBy('currentPoints', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map(
+          (snap) =>
+              snap.docs.map((e) => UserModel.fromMap(e.data())).toList(),
+        );
+  }
+
 }
