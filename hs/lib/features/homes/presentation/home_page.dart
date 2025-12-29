@@ -1,15 +1,55 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/housepal_bottom_nav.dart';
+import '../data/datasources/home_service.dart';
+import '../data/models/home_model.dart';
+import '../../chores/presentation/pages/chores_ranking_page.dart';
+
 
 const Color _greyText = Color(0xFF8B8E98);
 const double _cardRadius = 16;
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final _homeService = HomeService();
+
+  HomeSummaryModel? _summary;
+  List<HomeActivityModel> _activities = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final summary = await _homeService.getHomeSummary();
+    final activities = await _homeService.getRecentActivities();
+
+    if (!mounted) return;
+    setState(() {
+      _summary = summary;
+      _activities = activities;
+      _loading = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       bottomNavigationBar: const HousePalBottomNav(currentIndex: 0),
@@ -32,12 +72,14 @@ class HomePage extends StatelessWidget {
             const SizedBox(height: 16),
             _buildRecentNews(),
             const SizedBox(height: 20),
-            _buildMonthlyStarButton(),
+            _buildMonthlyStarButton(context),
           ],
         ),
       ),
     );
   }
+
+  // ================= HEADER =================
 
   Widget _buildHeader() {
     return Row(
@@ -65,87 +107,222 @@ class HomePage extends StatelessWidget {
             ],
           ),
         ),
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFE3E5EA)),
+        IconButton(
+          icon: const Icon(Icons.notifications_none_outlined),
+          onPressed: () =>
+              Navigator.pushNamed(context, '/notifications'),
+        ),
+      ],
+    );
+  }
+
+  // ================= SUMMARY =================
+
+  Widget _buildSummaryCards() {
+    return Row(
+      children: [
+        Expanded(
+          child: _summaryCard(
+            icon: Icons.event_available_outlined,
+            value: _summary!.todayChores.toString(),
+            label: 'Việc hôm nay',
+            onTap: () => Navigator.pushNamed(context, '/chores'),
           ),
-          child: const Icon(
-            Icons.notifications_none_outlined,
-            size: 22,
-            color: Colors.black87,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _summaryCard(
+            icon: Icons.star_border,
+            value: _summary!.monthPoints.toString(),
+            label: 'Điểm tháng này',
+            onTap: () => Navigator.pushNamed(context, '/chores-ranking'),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildSummaryCards() {
-    return Row(
+  Widget _summaryCard({
+    required IconData icon,
+    required String value,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(_cardRadius),
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(_cardRadius),
+          border: Border.all(color: const Color(0xFFE3E5EA)),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: AppColors.primary, size: 24),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: const TextStyle(
+                  fontSize: 22, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 13, color: _greyText),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ================= TODAY CHORES =================
+
+  Widget _buildTodayChores() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(_cardRadius),
-              border: Border.all(color: const Color(0xFFE3E5EA)),
-            ),
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Icon(
-                  Icons.event_available_outlined,
-                  color: AppColors.primary,
-                  size: 24,
-                ),
-                SizedBox(height: 8),
-                Text(
-                  '3',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Việc hôm nay',
-                  style: TextStyle(fontSize: 13, color: _greyText),
-                ),
-              ],
-            ),
+        _buildSectionHeader(
+          'Việc của bạn hôm nay',
+          onViewAll: () => Navigator.pushNamed(context, '/chores'),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(_cardRadius),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Text(
+            'Bạn có ${_summary!.todayChores} việc đang chờ',
+            style: const TextStyle(fontSize: 14),
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(_cardRadius),
-              border: Border.all(color: const Color(0xFFE3E5EA)),
+      ],
+    );
+  }
+
+  // ================= FINANCE =================
+
+  Widget _buildFinanceOverview() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(
+          'Tổng quan tài chính',
+          onViewAll: () => Navigator.pushNamed(context, '/expenses'),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(_cardRadius),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+          child: Row(
+            children: [
+              _financeCol('Bạn nợ', _summary!.debt, Colors.red),
+              Container(width: 1, height: 40, color: const Color(0xFFE3E5EA)),
+              const SizedBox(width: 16),
+              _financeCol(
+                'Nợ bạn',
+                _summary!.credit,
+                AppColors.primary,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _financeCol(String label, int value, Color color) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label,
+              style: const TextStyle(fontSize: 13, color: _greyText)),
+          const SizedBox(height: 6),
+          Text(
+            NumberFormat.currency(locale: 'vi_VN', symbol: 'đ')
+                .format(value),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: color,
             ),
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Icon(Icons.star_border, color: AppColors.primary, size: 24),
-                SizedBox(height: 8),
-                Text(
-                  '150',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Điểm tháng này',
-                  style: TextStyle(fontSize: 13, color: _greyText),
-                ),
-              ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ================= ACTIVITY =================
+
+  Widget _buildRecentNews() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(
+          'Hoạt động gần đây',
+          onViewAll: () =>
+              Navigator.pushNamed(context, '/notifications'),
+        ),
+        const SizedBox(height: 12),
+        ..._activities.map(
+          (e) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _ActivityItem(
+              title: e.title,
+              action: e.subtitle,
+              time: DateFormat('dd/MM HH:mm').format(e.createdAt),
             ),
           ),
         ),
       ],
     );
   }
+
+  Widget _buildMonthlyStarButton(BuildContext context) {
+    return SizedBox(
+      height: 52,
+      width: double.infinity,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          textStyle: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const ChoresRankingPage(),
+            ),
+          );
+        },
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.emoji_events_outlined, size: 20),
+            SizedBox(width: 8),
+            Text('Người xuất sắc tháng này'),
+          ],
+        ),
+      ),
+    );
+  }
+
 
   Widget _buildSectionHeader(String title, {VoidCallback? onViewAll}) {
     return Row(
@@ -169,207 +346,17 @@ class HomePage extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: 4),
-                Icon(Icons.chevron_right, size: 16, color: AppColors.primary),
+                Icon(Icons.chevron_right,
+                    size: 16, color: AppColors.primary),
               ],
             ),
           ),
       ],
     );
   }
-
-  Widget _buildTodayChores() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionHeader('Việc của bạn hôm nay', onViewAll: () {}),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(_cardRadius),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Column(
-            children: [
-              _buildSimpleTaskRow('Lau dọn phòng khách', false),
-              const SizedBox(height: 8),
-              _buildSimpleTaskRow('Mua đồ dùng sinh hoạt', false),
-              const SizedBox(height: 8),
-              _buildSimpleTaskRow('Đổ rác', true),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSimpleTaskRow(String title, bool done) {
-    return Row(
-      children: [
-        Icon(
-          done
-              ? Icons.check_circle_rounded
-              : Icons.radio_button_unchecked_rounded,
-          size: 20,
-          color: done ? AppColors.primary : const Color(0xFFB8BBC3),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            title,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              decoration: done
-                  ? TextDecoration.lineThrough
-                  : TextDecoration.none,
-              color: done ? _greyText : Colors.black,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFinanceOverview() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionHeader('Tổng quan tài chính', onViewAll: () {}),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(_cardRadius),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'Bạn nợ',
-                      style: TextStyle(fontSize: 13, color: _greyText),
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      '50.000đ',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.red,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(width: 1, height: 40, color: const Color(0xFFE3E5EA)),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'Nợ bạn',
-                      style: TextStyle(fontSize: 13, color: _greyText),
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      '120.000đ',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRecentNews() {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      _buildSectionHeader('Hoạt động gần đây', onViewAll: () {}),
-      const SizedBox(height: 12),
-      _ActivityItem(
-        title: 'Nam Phương',
-        action: 'đã hoàn thành việc Lau dọn bếp.',
-        time: '5 phút trước',
-      ),
-      const SizedBox(height: 12),
-      _ActivityItem(
-        title: 'Minh Tuấn',
-        action: 'đã thêm một khoản chi 150.000đ cho tiền điện.',
-        time: '',
-      ),
-    ],
-  );
 }
 
-  Widget _buildMonthlyStarButton() {
-    return SizedBox(
-      height: 52,
-      width: double.infinity,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-        ),
-        onPressed: () {},
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.emoji_events_outlined, size: 20),
-            SizedBox(width: 8),
-            Text('Người xuất sắc tháng này'),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _NewsItem extends StatelessWidget {
-  const _NewsItem({required this.title, required this.subtitle});
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          subtitle,
-          style: const TextStyle(fontSize: 12, color: _greyText),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
-    );
-  }
-}
+// ================= ACTIVITY ITEM =================
 
 class _ActivityItem extends StatelessWidget {
   const _ActivityItem({
@@ -394,12 +381,11 @@ class _ActivityItem extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          /// ICON TRẠNG THÁI
           Container(
             width: 36,
             height: 36,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE9FBF2),
+            decoration: const BoxDecoration(
+              color: Color(0xFFE9FBF2),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -409,24 +395,19 @@ class _ActivityItem extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-
-          
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 RichText(
                   text: TextSpan(
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.black,
-                    ),
+                    style:
+                        const TextStyle(fontSize: 14, color: Colors.black),
                     children: [
                       TextSpan(
                         text: title,
                         style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                        ),
+                            fontWeight: FontWeight.w700),
                       ),
                       TextSpan(text: ' $action'),
                     ],
@@ -437,9 +418,7 @@ class _ActivityItem extends StatelessWidget {
                   Text(
                     time,
                     style: const TextStyle(
-                      fontSize: 12,
-                      color: _greyText,
-                    ),
+                        fontSize: 12, color: _greyText),
                   ),
                 ],
               ],

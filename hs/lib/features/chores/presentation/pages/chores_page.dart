@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../data/datasources/chore_service.dart';
+import '../../data/models/chore_model.dart';
 import '../widgets/chore_widgets.dart';
 import 'create_chore_page.dart';
 import 'chores_ranking_page.dart';
@@ -13,37 +15,8 @@ class ChoresPage extends StatefulWidget {
 }
 
 class _ChoresPageState extends State<ChoresPage> {
-  int _selectedFilter = 1; 
-
-  final Map<String, List<_ChoreUiModel>> _data = {
-    'Thứ Hai, 28/11': [
-      _ChoreUiModel(
-        title: 'Hút bụi phòng khách',
-        subtitle: 'Minh Tuấn • Đến hạn lúc 18:00 • +15 điểm',
-      ),
-      _ChoreUiModel(
-        title: 'Rửa bát',
-        subtitle: 'Nam Phương • Đến hạn lúc 18:00 • +10 điểm',
-      ),
-      _ChoreUiModel(
-        title: 'Dọn nhà tắm',
-        subtitle: 'Bạn • Hoàn thành • +30 điểm',
-        done: true,
-      ),
-    ],
-    'Thứ Ba, 29/11': [
-      _ChoreUiModel(
-        title: 'Lau nhà',
-        subtitle: 'Nam Phương • Đến hạn lúc 18:00 • +10 điểm',
-      ),
-    ],
-    'Thứ Tư, 30/11': [
-      _ChoreUiModel(
-        title: 'Đổ rác',
-        subtitle: 'Minh Tuấn • Đến hạn lúc 09:00 • +5 điểm',
-      ),
-    ],
-  };
+  final ChoreService _choreService = ChoreService();
+  int _selectedFilter = 1;
 
   @override
   Widget build(BuildContext context) {
@@ -57,17 +30,14 @@ class _ChoresPageState extends State<ChoresPage> {
           'Lịch việc nhà',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
         ),
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.calendar_today_outlined),
-          ),
+        actions: const [
+          Icon(Icons.calendar_today_outlined),
         ],
       ),
 
       body: Column(
         children: [
-
+          /// LEADERBOARD
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
             child: LeaderboardCard(
@@ -82,7 +52,7 @@ class _ChoresPageState extends State<ChoresPage> {
             ),
           ),
 
-
+          /// FILTER
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: SegmentedFilter(
@@ -96,66 +66,72 @@ class _ChoresPageState extends State<ChoresPage> {
 
           const SizedBox(height: 16),
 
-
+          /// 🔥 FIREBASE CHORES
           Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 90),
-              itemCount: _data.keys.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 16),
-              itemBuilder: (context, index) {
-                final dayLabel = _data.keys.elementAt(index);
-                final chores = _data[dayLabel]!;
+            child: StreamBuilder<List<ChoreModel>>(
+              stream: _choreService.getChoresStream(),
+              builder: (context, snapshot) {
+                // LOADING
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      dayLabel,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
+                // ERROR
+                if (snapshot.hasError) {
+                  return const Center(
+                    child: Text(
+                      'Không thể tải việc nhà.\nVui lòng kiểm tra House / Firebase.',
+                      textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 8),
+                  );
+                }
 
-                    Column(
-                      children: List.generate(chores.length, (i) {
-                        final item = chores[i];
+                // EMPTY
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'Chưa có việc nhà nào.\nHãy tạo việc đầu tiên!',
+                      textAlign: TextAlign.center,
+                    ),
+                  );
+                }
 
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            bottom: i == chores.length - 1 ? 0 : 10,
-                          ),
-                          child: GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      const ChoreDetailPage(),
-                                ),
-                              );
-                            },
-                            child: _ChoreRow(
-                              item: item,
-                              onToggle: () {
-                                setState(() {
-                                  item.done = !item.done;
-                                });
-                              },
-                            ),
+                final chores = snapshot.data!;
+
+                return ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 90),
+                  itemCount: chores.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final chore = chores[index];
+                    final bool done = chore.status == 'completed';
+
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ChoreDetailPage(chore: chore),
                           ),
                         );
-                      }),
-                    ),
-                  ],
+                      },
+                      child: _ChoreRow(
+                        chore: chore,
+                        done: done,
+                        onToggle: done
+                            ? null
+                            : () async {
+                                await _choreService.completeChore(chore);
+                              },
+                      ),
+                    );
+                  },
                 );
               },
             ),
           ),
         ],
       ),
-
 
       floatingActionButton: FloatingActionButton(
         backgroundColor: kPrimaryGreen,
@@ -175,27 +151,29 @@ class _ChoresPageState extends State<ChoresPage> {
   }
 }
 
+/// ================= ROW =================
 
 class _ChoreRow extends StatelessWidget {
   const _ChoreRow({
-    required this.item,
+    required this.chore,
+    required this.done,
     required this.onToggle,
   });
 
-  final _ChoreUiModel item;
-  final VoidCallback onToggle;
+  final ChoreModel chore;
+  final bool done;
+  final VoidCallback? onToggle;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: item.done ? const Color(0xFFEFF5F1) : Colors.white,
+        color: done ? const Color(0xFFEFF5F1) : Colors.white,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
-          /// CHECKBOX
           GestureDetector(
             onTap: onToggle,
             child: Container(
@@ -204,17 +182,16 @@ class _ChoreRow extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: item.done ? kPrimaryGreen : Colors.grey,
+                  color: done ? kPrimaryGreen : Colors.grey,
                   width: 2,
                 ),
-                color: item.done ? kPrimaryGreen : Colors.transparent,
+                color: done ? kPrimaryGreen : Colors.transparent,
               ),
-              child: item.done
+              child: done
                   ? const Icon(Icons.check, size: 14, color: Colors.white)
                   : null,
             ),
           ),
-
           const SizedBox(width: 12),
 
           Expanded(
@@ -222,17 +199,16 @@ class _ChoreRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.title,
+                  chore.title,
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    decoration:
-                        item.done ? TextDecoration.lineThrough : null,
+                    decoration: done ? TextDecoration.lineThrough : null,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  item.subtitle,
+                  '${chore.currentGroupId} • +${chore.points} điểm',
                   style: const TextStyle(
                     fontSize: 13,
                     color: kGreyText,
@@ -247,17 +223,4 @@ class _ChoreRow extends StatelessWidget {
       ),
     );
   }
-}
-
-
-class _ChoreUiModel {
-  _ChoreUiModel({
-    required this.title,
-    required this.subtitle,
-    this.done = false,
-  });
-
-  final String title;
-  final String subtitle;
-  bool done;
 }
