@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../widgets/chore_widgets.dart';
-import '../../../../core/widgets/housepal_bottom_nav.dart';
+import '../../data/datasources/chore_service.dart';
+import 'package:hs/features/authentication/data/models/user_model.dart';
+import '../../../../core/constants/app_colors.dart';
 
 class ChoresRankingPage extends StatefulWidget {
   const ChoresRankingPage({super.key});
@@ -10,155 +11,193 @@ class ChoresRankingPage extends StatefulWidget {
 }
 
 class _ChoresRankingPageState extends State<ChoresRankingPage> {
-  int _selectedMonth = 1;
+  final _service = ChoreService();
+
+  List<UserModel> _ranking = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRanking();
+  }
+
+  Future<void> _loadRanking() async {
+    try {
+      setState(() => _loading = true);
+      final result = await _service.getMonthlyRanking();
+
+      if (!mounted) return;
+      setState(() {
+        _ranking = result;
+        _loading = false;
+      });
+    } catch (e) {
+      debugPrint('Ranking error: $e');
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBackground,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: kBackground,
-        elevation: 0,
+        title: const Text('Bảng xếp hạng tháng'),
         centerTitle: true,
-        title: const Text(
-          'Bảng xếp hạng',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: Colors.black,
-          ),
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _ranking.isEmpty
+              ? _buildEmpty()
+              : ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    _buildTopUser(_ranking.first),
+                    const SizedBox(height: 16),
+                    ..._ranking
+                        .skip(1)
+                        .toList()
+                        .asMap()
+                        .entries
+                        .map(
+                          (e) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _RankingItem(
+                              rank: e.key + 2,
+                              user: e.value,
+                            ),
+                          ),
+                        ),
+                  ],
+                ),
+    );
+  }
+
+  Widget _buildEmpty() {
+    return const Center(
+      child: Text(
+        'Chưa có dữ liệu xếp hạng',
+        style: TextStyle(color: Colors.grey),
+      ),
+    );
+  }
+
+  Widget _buildTopUser(UserModel user) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFD54F), Color(0xFFFFF176)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
       ),
-      body: Column(
+      child: Column(
         children: [
+          CircleAvatar(
+            radius: 42,
+            backgroundImage: user.avatarUrl.isNotEmpty
+                ? AssetImage(user.avatarUrl)
+                : const AssetImage('lib/core/assets/avatars/meo3.jpg'),
+          ),
           const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: SegmentedFilter(
-              labels: const ['Tháng 11/2023', 'Tháng 10/2023', 'Tháng 9/2023'],
-              selectedIndex: _selectedMonth,
-              onSelected: (index) {
-                setState(() {
-                  _selectedMonth = index;
-                });
-              },
+          const Text(
+            'Hạng 1',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            user.name,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: kCardRadius,
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFFF5C2), Color(0xFFFFE189)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  const SizedBox(height: 8),
-                  const CircleAvatar(
-                    radius: 32,
-                    backgroundImage: AssetImage(
-                      'lib/core/assets/avatars/meo3.jpg',
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Văn Dũng (Bạn)',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Thành viên Tích cực của Tháng',
-                    style: TextStyle(fontSize: 13, color: kGreyText),
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
-                      color: Colors.white,
-                    ),
-                    child: const Text(
-                      '1250 điểm',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: kPrimaryGreen,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-              ),
-            ),
+          const SizedBox(height: 4),
+          const Text(
+            'Thành viên tích cực của tháng',
+            style: TextStyle(fontSize: 13),
           ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: const [
-                _RankingRow(order: 2, name: 'Nam Phương', points: 1100),
-                SizedBox(height: 8),
-                _RankingRow(order: 3, name: 'Minh Tuấn', points: 980),
-              ],
+          const SizedBox(height: 8),
+          Text(
+            '${user.currentPoints} điểm',
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: AppColors.primary,
             ),
           ),
         ],
       ),
-      bottomNavigationBar: const HousePalBottomNav(currentIndex: 1),
     );
   }
 }
 
-class _RankingRow extends StatelessWidget {
-  const _RankingRow({
-    required this.order,
-    required this.name,
-    required this.points,
-  });
+class _RankingItem extends StatelessWidget {
+  final int rank;
+  final UserModel user;
 
-  final int order;
-  final String name;
-  final int points;
+  const _RankingItem({
+    required this.rank,
+    required this.user,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: kCardBackground,
-        borderRadius: kCardRadius,
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE3E5EA)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       child: Row(
         children: [
-          Text(
-            '$order',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(width: 16),
-          const CircleAvatar(
-            radius: 18,
-            backgroundImage: AssetImage('lib/core/assets/avatars/meo3.jpg'),
+          CircleAvatar(
+            radius: 22,
+            backgroundImage: user.avatarUrl.isNotEmpty
+                ? AssetImage(user.avatarUrl)
+                : const AssetImage('lib/core/assets/avatars/meo3.jpg'),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              name,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  user.name,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${user.currentPoints} điểm',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
             ),
           ),
-          Text(
-            '$points điểm',
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F3F6),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              '#$rank',
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),

@@ -67,7 +67,6 @@ class CreateChoreSuccessPage extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {
-                    // ❗ QUAN TRỌNG
                     Navigator.pop(context); // đóng success page
                     Navigator.pushReplacementNamed(context, '/chores');
                   },

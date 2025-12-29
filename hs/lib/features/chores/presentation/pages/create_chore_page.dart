@@ -34,7 +34,7 @@ class _CreateChorePageState extends State<CreateChorePage> {
   int _points = 0;
   bool _autoRotate = false;
 
-  /// ====== MEMBERS REALTIME ======
+  /// ===== MEMBERS (REALTIME) =====
   List<UserModel> _houseMembers = [];
   Map<String, bool> _selectedMembers = {};
   String? _assignedMemberUid;
@@ -47,9 +47,10 @@ class _CreateChorePageState extends State<CreateChorePage> {
     _loadHouseMembers();
   }
 
+  /* ================= LOAD MEMBERS ================= */
+
   Future<void> _loadHouseMembers() async {
     final uid = _auth.currentUser!.uid;
-
     final userDoc = await _firestore.collection('users').doc(uid).get();
     final houseId = userDoc['houseId'];
 
@@ -64,14 +65,14 @@ class _CreateChorePageState extends State<CreateChorePage> {
       setState(() {
         _houseMembers = users;
         _loadingMembers = false;
-
-        // init checkbox
         for (final u in users) {
           _selectedMembers.putIfAbsent(u.uid, () => true);
         }
       });
     });
   }
+
+  /* ================= HELPERS ================= */
 
   String _frequencyLabel(RepeatFrequency f) {
     switch (f) {
@@ -85,6 +86,12 @@ class _CreateChorePageState extends State<CreateChorePage> {
         return 'Hàng năm';
     }
   }
+
+  String _formatDate(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  String _formatTime(DateTime s, DateTime e) =>
+      '${s.hour}:${s.minute.toString().padLeft(2, '0')} → ${e.hour}:${e.minute.toString().padLeft(2, '0')}';
 
   void _changePoints(int delta) {
     setState(() {
@@ -101,11 +108,15 @@ class _CreateChorePageState extends State<CreateChorePage> {
     return order.isEmpty ? 'Chưa chọn thành viên' : order.join(' ➝ ');
   }
 
+  /* ================= CREATE ================= */
+
   Future<void> _createChore() async {
-    final selectedUids = _houseMembers
-        .where((u) => _selectedMembers[u.uid] == true)
-        .map((u) => u.uid)
-        .toList();
+    final selectedUids = _autoRotate
+        ? _houseMembers
+            .where((u) => _selectedMembers[u.uid] == true)
+            .map((u) => u.uid)
+            .toList()
+        : [_assignedMemberUid!];
 
     if (selectedUids.isEmpty) return;
 
@@ -125,6 +136,8 @@ class _CreateChorePageState extends State<CreateChorePage> {
       );
     }
   }
+
+  /* ================= UI ================= */
 
   @override
   Widget build(BuildContext context) {
@@ -155,7 +168,7 @@ class _CreateChorePageState extends State<CreateChorePage> {
                   child: TextField(
                     controller: _nameController,
                     decoration: const InputDecoration(
-                      hintText: 'Ví dụ: Rửa bát, Đổ rác...',
+                      hintText: 'Ví dụ: Vệ sinh tủ lạnh',
                       border: InputBorder.none,
                     ),
                   ),
@@ -167,10 +180,76 @@ class _CreateChorePageState extends State<CreateChorePage> {
                   child: TextField(
                     controller: _descriptionController,
                     maxLines: 3,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                    ),
+                    decoration:
+                        const InputDecoration(border: InputBorder.none),
                   ),
+                ),
+                const SizedBox(height: 12),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: _InputCard(
+                        label: 'Ngày thực hiện',
+                        child: InkWell(
+                          onTap: () async {
+                            final d = await showDatePicker(
+                              context: context,
+                              initialDate: _start,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2030),
+                            );
+                            if (d != null) {
+                              setState(() {
+                                _start = DateTime(d.year, d.month, d.day,
+                                    _start.hour, _start.minute);
+                                _end = DateTime(d.year, d.month, d.day,
+                                    _end.hour, _end.minute);
+                              });
+                            }
+                          },
+                          child: Row(
+                            children: [
+                              Expanded(child: Text(_formatDate(_start))),
+                              const Icon(Icons.calendar_today_outlined,
+                                  size: 18),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _InputCard(
+                        label: 'Khung giờ làm việc',
+                        child: InkWell(
+                          onTap: () async {
+                            final s = await showTimePicker(
+                                context: context,
+                                initialTime:
+                                    TimeOfDay.fromDateTime(_start));
+                            final e = await showTimePicker(
+                                context: context,
+                                initialTime: TimeOfDay.fromDateTime(_end));
+                            if (s != null && e != null) {
+                              setState(() {
+                                _start = DateTime(_start.year, _start.month,
+                                    _start.day, s.hour, s.minute);
+                                _end = DateTime(_end.year, _end.month,
+                                    _end.day, e.hour, e.minute);
+                              });
+                            }
+                          },
+                          child: Row(
+                            children: [
+                              Expanded(child: Text(_formatTime(_start, _end))),
+                              const Icon(Icons.access_time, size: 18),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
 
@@ -209,27 +288,21 @@ class _CreateChorePageState extends State<CreateChorePage> {
                         ),
                       ),
                       _StepButton(
-                          icon: Icons.add, onTap: () => _changePoints(1)),
+                          icon: Icons.add,
+                          onTap: () => _changePoints(1)),
                     ],
                   ),
                 ),
                 const SizedBox(height: 12),
 
-                /// ===== AUTO ROTATE =====
+                /// AUTO ROTATE
                 Container(
                   decoration: BoxDecoration(
                     color: const Color(0xFFEAFBF3),
                     borderRadius: kCardRadius,
-                    border: Border.all(
-                      color: _autoRotate
-                          ? kPrimaryGreen
-                          : Colors.transparent,
-                      width: 2,
-                    ),
                   ),
                   padding: const EdgeInsets.all(16),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
@@ -243,13 +316,11 @@ class _CreateChorePageState extends State<CreateChorePage> {
                             ),
                           ),
                           Switch(
-                            value: _autoRotate,
-                            onChanged: (v) =>
-                                setState(() => _autoRotate = v),
-                          ),
+                              value: _autoRotate,
+                              onChanged: (v) =>
+                                  setState(() => _autoRotate = v)),
                         ],
                       ),
-
                       if (_autoRotate) ...[
                         const SizedBox(height: 12),
                         ..._houseMembers.map((u) {
@@ -262,32 +333,54 @@ class _CreateChorePageState extends State<CreateChorePage> {
                                 ListTileControlAffinity.leading,
                           );
                         }),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Thứ tự xoay vòng: $orderText',
-                          style: const TextStyle(fontSize: 13),
-                        ),
+                        Text('Thứ tự xoay vòng: $orderText'),
                       ]
                     ],
                   ),
                 ),
 
-                const SizedBox(height: 20),
+                if (!_autoRotate) ...[
+                  const SizedBox(height: 12),
+                  _InputCard(
+                    label: 'Phân công cho',
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _assignedMemberUid,
+                        hint: const Text('Chọn thành viên'),
+                        isExpanded: true,
+                        items: _houseMembers
+                            .map((u) => DropdownMenuItem(
+                                  value: u.uid,
+                                  child: Text(u.name),
+                                ))
+                            .toList(),
+                        onChanged: (v) =>
+                            setState(() => _assignedMemberUid = v),
+                      ),
+                    ),
+                  ),
+                ],
 
+                const SizedBox(height: 20),
                 SizedBox(
                   height: 52,
+                  width: double.infinity,
                   child: ElevatedButton(
                     onPressed: _createChore,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: kPrimaryGreen,
+                      elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
                     child: const Text(
                       'Tạo việc nhà',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black, 
+                      ),
                     ),
                   ),
                 ),
@@ -298,11 +391,10 @@ class _CreateChorePageState extends State<CreateChorePage> {
   }
 }
 
-/* ================= UI COMPONENT ================= */
+/* ================= UI HELPERS ================= */
 
 class _InputCard extends StatelessWidget {
   const _InputCard({required this.label, required this.child});
-
   final String label;
   final Widget child;
 
@@ -331,7 +423,6 @@ class _InputCard extends StatelessWidget {
 
 class _StepButton extends StatelessWidget {
   const _StepButton({required this.icon, required this.onTap});
-
   final IconData icon;
   final VoidCallback onTap;
 
