@@ -7,6 +7,12 @@ class ShoppingItemModel {
   final String requestedBy;
   final bool isBought;
   final DateTime createdAt;
+  
+  // --- CÁC TRƯỜNG MỚI ---
+  final double quantity; // Số lượng
+  final String unit;     // Đơn vị (Cái, Kg, Hộp...)
+  final bool isUrgent;   // Gấp
+  final String? imageUrl; // Link ảnh (nếu có)
 
   ShoppingItemModel({
     required this.id,
@@ -15,6 +21,10 @@ class ShoppingItemModel {
     required this.requestedBy,
     this.isBought = false,
     required this.createdAt,
+    this.quantity = 1.0,
+    this.unit = 'Cái',
+    this.isUrgent = false,
+    this.imageUrl,
   });
 
   Map<String, dynamic> toMap() {
@@ -24,6 +34,10 @@ class ShoppingItemModel {
       'requestedBy': requestedBy,
       'isBought': isBought,
       'createdAt': Timestamp.fromDate(createdAt),
+      'quantity': quantity,
+      'unit': unit,
+      'isUrgent': isUrgent,
+      'imageUrl': imageUrl,
     };
   }
 
@@ -36,6 +50,10 @@ class ShoppingItemModel {
       requestedBy: data['requestedBy'] ?? '',
       isBought: data['isBought'] ?? false,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
+      quantity: (data['quantity'] ?? 1).toDouble(),
+      unit: data['unit'] ?? 'Cái',
+      isUrgent: data['isUrgent'] ?? false,
+      imageUrl: data['imageUrl'],
     );
   }
 }

@@ -97,7 +97,7 @@ class MyApp extends StatelessWidget {
         '/expenses': (context) => const ExpensesPage(),
         '/add_expense': (context) => const AddExpensePage(),
         '/debt_optimization': (context) => const DebtOptimizationPage(),
-        '/expense_detail': (context) => const ExpenseDetailPage(), // Chi tiết chi tiêu
+        //'/expense_detail': (context) => const ExpenseDetailPage(), // Chi tiết chi tiêu
         
        
         '/house_management': (context) => const HouseManagementPage(),

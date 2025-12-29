@@ -1,14 +1,19 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:hs/features/expenses/data/datasources/ExpenseService.dart';
 import 'package:intl/intl.dart';
+
+// --- CÁC IMPORT CỦA BẠN ---
+// Hãy đảm bảo đường dẫn import đúng với cấu trúc dự án của bạn
+import 'package:hs/features/expenses/data/datasources/ExpenseService.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/widgets/housepal_bottom_nav.dart';
 import '../../data/models/expense_model.dart';
 import '../widgets/balance_card.dart';
 import '../widgets/transaction_item.dart';
-import '../widgets/balance_card.dart'; // Import file vừa tạo ở trên
+
+// --- IMPORT TRANG CHI TIẾT ---
+import 'expense_detail_page.dart'; 
 
 class ExpensesPage extends StatefulWidget {
   const ExpensesPage({super.key});
@@ -23,20 +28,18 @@ class _ExpensesPageState extends State<ExpensesPage> {
   
   final currencyFormat = NumberFormat("#,##0", "vi_VN");
 
-  // --- LOGIC TÍNH TOÁN SỐ DƯ (ĐÃ NÂNG CẤP) ---
+  // --- LOGIC TÍNH TOÁN SỐ DƯ ---
   Map<String, double> _calculateBalances(List<ExpenseModel> expenses) {
     double totalDebt = 0;       // Tổng tiền mình nợ
     double totalReceivable = 0; // Tổng tiền người khác nợ mình
 
     for (var expense in expenses) {
-      // Kiểm tra xem đây là khoản chi thường hay là khoản Trả nợ
       bool isSettlement = expense.splitType == 'settlement';
 
       // TRƯỜNG HỢP 1: Mình là người chi tiền (Payer)
       if (expense.payerId == _myUid) {
         if (isSettlement) {
           // Mình trả tiền để Xóa nợ -> Giảm tổng nợ của mình
-          // (Lưu ý: Logic này giả định mình trả hết số tiền trong amount)
           totalDebt -= expense.amount; 
         } else {
           // Chi tiêu thường -> Người khác nợ mình
@@ -58,7 +61,6 @@ class _ExpensesPageState extends State<ExpensesPage> {
       }
     }
     
-    // Đảm bảo không bị số âm do sai số nhỏ (tùy chọn)
     if (totalDebt < 0) totalDebt = 0;
     if (totalReceivable < 0) totalReceivable = 0;
 
@@ -99,7 +101,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
 
           final expenses = snapshot.data ?? [];
           
-          // Tính toán lại số dư (đã bao gồm việc trừ nợ)
+          // Tính toán lại số dư
           final balances = _calculateBalances(expenses);
           final double netBalance = balances['net']!;
           final double debt = balances['debt']!;
@@ -111,7 +113,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 
-                // 1. CARD SỐ DƯ (Sẽ tự động cập nhật màu và số tiền)
+                // 1. CARD SỐ DƯ
                 BalanceCard(
                   highlightType: netBalance >= 0 ? HighlightType.receivable : HighlightType.debt,
                   totalBalance: "${netBalance >= 0 ? '+' : ''}${currencyFormat.format(netBalance)}đ",
@@ -149,7 +151,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       if (isSettlement) {
                         // GIAO DỊCH TRẢ NỢ
                         titleText = "Thanh toán nợ";
-                        iconBg = const Color(0xFFE8F5E9); // Xanh lá nhạt
+                        iconBg = const Color(0xFFE8F5E9); 
                         if (isMePayer) {
                            payerText = "Bạn đã trả nợ ($dateStr)";
                            amountText = "-${currencyFormat.format(expense.amount)}đ";
@@ -183,16 +185,27 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         }
                       }
 
-                      return TransactionItem(
-                        title: titleText,
-                        payer: payerText,
-                        amount: amountText,
-                        amountColor: amountColor,
-                        status: statusText,
-                        statusBgColor: statusBg,
-                        statusTextColor: statusTextCol,
-                        icon: _getIconForCategory(expense.category),
-                        iconBgColor: iconBg,
+                      // --- SỰ KIỆN NHẤN ĐỂ XEM CHI TIẾT ---
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ExpenseDetailPage(expense: expense),
+                            ),
+                          );
+                        },
+                        child: TransactionItem(
+                          title: titleText,
+                          payer: payerText,
+                          amount: amountText,
+                          amountColor: amountColor,
+                          status: statusText,
+                          statusBgColor: statusBg,
+                          statusTextColor: statusTextCol,
+                          icon: _getIconForCategory(expense.category),
+                          iconBgColor: iconBg,
+                        ),
                       );
                     },
                   ),

@@ -7,12 +7,14 @@ import '../../../../core/constants/app_colors.dart';
 import '../widgets/profile_header.dart';
 import '../widgets/profile_stat_card.dart';
 import '../widgets/profile_menu_option.dart';
-import 'manage_house_page.dart';
+import '../../../house_setup/presentation/pages/manage_house_page.dart';
 
-// --- IMPORT QUAN TRỌNG: Dùng Service và Model của Expenses ---
-// Hãy chắc chắn đường dẫn này đúng với dự án của bạn
+// Import Service và Model của Expenses
 import 'package:hs/features/expenses/data/datasources/ExpenseService.dart';
 import 'package:hs/features/expenses/data/models/expense_model.dart';
+
+// --- [MỚI] IMPORT TRANG CHỈNH SỬA HỒ SƠ ---
+import 'edit_profile_page.dart'; 
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -28,36 +30,32 @@ class ProfilePage extends StatelessWidget {
     
     String houseName = "Chưa có nhà";
     String inviteCode = "";
+    String adminId = ""; 
+    String houseId = ""; 
     double finalBalance = 0.0; 
 
     // 2. Lấy thông tin House
     if (userData['houseId'] != null && userData['houseId'].toString().isNotEmpty) {
-      final String houseId = userData['houseId'];
+      houseId = userData['houseId'];
       final houseDoc = await FirebaseFirestore.instance.collection('houses').doc(houseId).get();
       
       if (houseDoc.exists) {
         final houseData = houseDoc.data() ?? {};
         houseName = houseData['name'] ?? "Nhà chung"; 
         inviteCode = houseData['inviteCode'] ?? "";
+        adminId = houseData['adminId'] ?? "";
 
-        // --- DÙNG SERVICE ĐỂ ĐỒNG BỘ DỮ LIỆU VỚI TRANG TỐI ƯU ---
+        // --- DÙNG SERVICE ĐỂ TÍNH TOÁN SỐ DƯ ---
         try {
           final expenseService = ExpenseService();
-          
-          // Lấy danh sách chi tiêu từ Stream (lấy snapshot đầu tiên)
-          // Điều này đảm bảo chúng ta dùng đúng bộ dữ liệu như trang DebtOptimizationPage
           final List<ExpenseModel> expenses = await expenseService.getExpensesStream().first;
-
-          // Áp dụng thuật toán tính toán tối ưu
           final transactions = _calculateDebts(expenses, user.uid);
           
-          // Cộng dồn kết quả: Tôi nợ ai (-) hay ai nợ tôi (+)
           for (var trans in transactions) {
             finalBalance += (trans['amount'] as num).toDouble();
           }
         } catch (e) {
           debugPrint("Lỗi tính toán Profile: $e");
-          // Nếu lỗi Service, giữ balance = 0 hoặc fallback tùy ý
         }
       }
     }
@@ -67,13 +65,13 @@ class ProfilePage extends StatelessWidget {
       'houseName': houseName,
       'inviteCode': inviteCode,
       'calculatedBalance': finalBalance,
+      'houseId': houseId,
+      'adminId': adminId,
     };
   }
 
-  // --- THUẬT TOÁN COPY TỪ DEBT OPTIMIZATION PAGE ---
-  // Giữ nguyên logic để đảm bảo số liệu khớp 100%
+  // --- THUẬT TOÁN TÍNH NỢ ---
   List<Map<String, dynamic>> _calculateDebts(List<ExpenseModel> expenses, String myUid) {
-    // 1. Tính số dư ròng (Net Balance)
     Map<String, double> netBalance = {};
 
     for (var expense in expenses) {
@@ -102,12 +100,10 @@ class ProfilePage extends StatelessWidget {
       });
     }
 
-    // 2. Tách nhóm
     List<MapEntry<String, double>> debtors = [];
     List<MapEntry<String, double>> creditors = [];
 
     netBalance.forEach((uid, amount) {
-      // Bộ lọc này là nguyên nhân khiến số liệu lệch nếu tính thủ công
       if (amount < -100) debtors.add(MapEntry(uid, amount)); 
       if (amount > 100) creditors.add(MapEntry(uid, amount));
     });
@@ -115,7 +111,6 @@ class ProfilePage extends StatelessWidget {
     debtors.sort((a, b) => a.value.compareTo(b.value)); 
     creditors.sort((a, b) => b.value.compareTo(a.value)); 
 
-    // 3. Ghép cặp
     List<Map<String, dynamic>> transactions = [];
     int i = 0; 
     int j = 0; 
@@ -128,7 +123,6 @@ class ProfilePage extends StatelessWidget {
           ? debtor.value.abs() 
           : creditor.value;
 
-      // CHỈ LẤY GIAO DỊCH LIÊN QUAN ĐẾN TÔI
       if (debtor.key == myUid || creditor.key == myUid) {
          transactions.add({
           'partnerId': (debtor.key == myUid) ? creditor.key : debtor.key,
@@ -184,6 +178,9 @@ class ProfilePage extends StatelessWidget {
           final String inviteCode = data['inviteCode'] ?? '';
           final String houseName = data['houseName'] ?? 'Nhà chung';
           final double balance = data['calculatedBalance'] ?? 0.0;
+          
+          final String houseId = data['houseId'] ?? '';
+          final String adminId = data['adminId'] ?? '';
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(20),
@@ -197,15 +194,37 @@ class ProfilePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 
+                // --- NÚT CHỈNH SỬA THÔNG TIN ---
                 SizedBox(
                   height: 36,
                   child: ElevatedButton.icon(
-                    onPressed: () {},
+                    onPressed: () {
+                      // [MỚI] SỰ KIỆN CHUYỂN TRANG
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => EditProfilePage(
+                            currentName: data['name'],
+                            currentEmail: data['email'],
+                            currentPhone: data['phoneNumber'], // Lấy từ field phoneNumber trong Firestore
+                            currentBio: data['bio'],           // Lấy từ field bio
+                            currentDob: data['dob'],           // Lấy từ field dob
+                            currentGender: data['gender'],     // Lấy từ field gender
+                          ),
+                        ),
+                      ).then((_) {
+                        // (Tùy chọn) Reload lại trang nếu cần sau khi quay về
+                        // setState không dùng được ở đây vì là StatelessWidget
+                        // Nếu cần reload, hãy chuyển ProfilePage thành StatefulWidget
+                      });
+                    },
                     icon: const Icon(Icons.edit, size: 14, color: AppColors.primary),
                     label: const Text("Chỉnh sửa thông tin", style: TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.bold)),
                     style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE0F9F4), elevation: 0),
                   ),
                 ),
+                // ----------------------------------
+
                 const SizedBox(height: 24),
 
                 if (isAdmin) 
@@ -216,7 +235,9 @@ class ProfilePage extends StatelessWidget {
                         MaterialPageRoute(
                           builder: (context) => ManageHousePage(
                             houseName: houseName, 
-                            inviteCode: inviteCode
+                            inviteCode: inviteCode,
+                            houseId: houseId,
+                            adminId: adminId,
                           )
                         )
                       );
@@ -299,7 +320,7 @@ class ProfilePage extends StatelessWidget {
 
                 const SizedBox(height: 20),
 
-                // Thống kê - Dữ liệu chắc chắn khớp
+                // Thống kê
                 ProfileStatCard(
                   points: data['currentPoints'] ?? 0, 
                   debt: balance
