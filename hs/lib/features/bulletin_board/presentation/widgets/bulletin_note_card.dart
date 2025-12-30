@@ -84,4 +84,3 @@ class BulletinNoteCard extends StatelessWidget {
   }
 }
 
-// [Refactor] Code optimization pass 2
