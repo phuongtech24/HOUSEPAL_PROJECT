@@ -281,9 +281,8 @@ class ChoreListItem extends StatelessWidget {
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: textColor,
-                    decoration: done
-                        ? TextDecoration.lineThrough
-                        : TextDecoration.none,
+                    decoration:
+                        done ? TextDecoration.lineThrough : TextDecoration.none,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -291,7 +290,10 @@ class ChoreListItem extends StatelessWidget {
                   done
                       ? 'Hoàn thành  $pointsText'
                       : '$deadlineText  $pointsText',
-                  style: const TextStyle(fontSize: 13, color: kGreyText),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: kGreyText,
+                  ),
                 ),
               ],
             ),

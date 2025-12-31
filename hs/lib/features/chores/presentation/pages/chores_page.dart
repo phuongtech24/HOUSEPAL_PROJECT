@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:hs/features/authentication/data/models/user_model.dart';
+import 'package:hs/features/chores/presentation/widgets/LeaderboardCard.dart';
 import '../../data/datasources/chore_service.dart';
 import '../../data/models/chore_model.dart';
-import '../widgets/chore_widgets.dart';
+
+import '../widgets/chore_widgets.dart' hide LeaderboardCard;
+
 import 'create_chore_page.dart';
 import 'chores_ranking_page.dart';
 import 'chore_detail_page.dart';
+
 import '../../../../core/widgets/housepal_bottom_nav.dart';
 
 // ... (imports remain the same)
@@ -49,22 +54,44 @@ class _ChoresPageState extends State<ChoresPage> {
 
       body: Column(
         children: [
-          /// LEADERBOARD
+          /// ================= LEADERBOARD (DATA THỰC – FIX HOÀN CHỈNH) =================
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-            child: LeaderboardCard(
-              onTapViewAll: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const ChoresRankingPage(),
-                  ),
+            child: StreamBuilder<List<UserModel>>(
+              stream: _choreService.getHouseMembersStream(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const SizedBox(height: 120);
+                }
+
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const SizedBox(height: 120);
+                }
+
+                // ✅ CLONE LIST + SORT (KHÔNG ĐÈ SNAPSHOT)
+                final List<UserModel> rankedUsers =
+                    List<UserModel>.from(snapshot.data!)
+                      ..sort(
+                        (a, b) =>
+                            b.currentPoints.compareTo(a.currentPoints),
+                      );
+
+                return LeaderboardCard(
+                  users: rankedUsers.take(3).toList(), // ✅ HẾT LỖI take(3)
+                  onTapViewAll: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ChoresRankingPage(),
+                      ),
+                    );
+                  },
                 );
               },
             ),
           ),
 
-          /// FILTER
+          /// ================= FILTER (GIỮ NGUYÊN) =================
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: SegmentedFilter(
@@ -78,17 +105,18 @@ class _ChoresPageState extends State<ChoresPage> {
 
           const SizedBox(height: 16),
 
-          /// 🔥 FIREBASE CHORES
+          /// ================= CHORES LIST (GIỮ NGUYÊN) =================
           Expanded(
             child: StreamBuilder<List<ChoreModel>>(
               stream: _choreService.getChoresStream(),
               builder: (context, snapshot) {
-                // LOADING
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                if (snapshot.connectionState ==
+                    ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
                 }
 
-                // ERROR
                 if (snapshot.hasError) {
                   return Center(
                     child: Text(
@@ -99,7 +127,6 @@ class _ChoresPageState extends State<ChoresPage> {
                   );
                 }
 
-                // EMPTY
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return Center(
                     child: Text(
@@ -115,17 +142,20 @@ class _ChoresPageState extends State<ChoresPage> {
                 return ListView.separated(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 90),
                   itemCount: chores.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  separatorBuilder: (_, __) =>
+                      const SizedBox(height: 10),
                   itemBuilder: (context, index) {
                     final chore = chores[index];
-                    final bool done = chore.status == 'completed';
+                    final bool done =
+                        chore.status == 'completed';
 
                     return GestureDetector(
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => ChoreDetailPage(chore: chore),
+                            builder: (_) =>
+                                ChoreDetailPage(chore: chore),
                           ),
                         );
                       },
@@ -135,7 +165,8 @@ class _ChoresPageState extends State<ChoresPage> {
                         onToggle: done
                             ? null
                             : () async {
-                                await _choreService.completeChore(chore);
+                                await _choreService
+                                    .completeChore(chore);
                               },
                       ),
                     );
@@ -160,12 +191,13 @@ class _ChoresPageState extends State<ChoresPage> {
         child: const Icon(Icons.add, size: 30, color: Colors.white),
       ),
 
-      bottomNavigationBar: const HousePalBottomNav(currentIndex: 1),
+      bottomNavigationBar:
+          const HousePalBottomNav(currentIndex: 1),
     );
   }
 }
 
-/// ================= ROW =================
+/// ================= ROW (GIỮ NGUYÊN) =================
 
 class _ChoreRow extends StatelessWidget {
   const _ChoreRow({
@@ -210,12 +242,12 @@ class _ChoreRow extends StatelessWidget {
                 color: done ? AppColors.primary : Colors.transparent,
               ),
               child: done
-                  ? const Icon(Icons.check, size: 14, color: Colors.white)
+                  ? const Icon(Icons.check,
+                      size: 14, color: Colors.white)
                   : null,
             ),
           ),
           const SizedBox(width: 12),
-
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -241,7 +273,6 @@ class _ChoreRow extends StatelessWidget {
               ],
             ),
           ),
-
           const Icon(Icons.chevron_right, color: Colors.grey),
         ],
       ),
