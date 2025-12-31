@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:hs/features/authentication/presentation/widgets/auth_label.dart';
-import 'package:hs/features/authentication/presentation/widgets/auth_text_field.dart';
 import '../../../../core/constants/app_colors.dart';
-// Import các widget dùng chung (đường dẫn tùy thuộc vào cấu trúc folder của bạn)
-import '../../authentication/presentation/widgets/auth_label.dart';
-import '../../authentication/presentation/widgets/auth_text_field.dart';
-import '../widgets/primary_button.dart';   
+import '../widgets/primary_button.dart'; 
+// Lưu ý: Đảm bảo bạn có file primary_button.dart trong folder house_setup/presentation/widgets/
+// Nếu không có, hãy thay thế widget PrimaryButton bên dưới bằng ElevatedButton thường.
 
 class CreateHousePage extends StatefulWidget {
   const CreateHousePage({super.key});
@@ -36,8 +33,7 @@ class _CreateHousePageState extends State<CreateHousePage> {
     }
 
     // TODO: Gọi API/Firebase tạo nhà mới tại đây
-    // Ví dụ: await houseRepository.createHouse(...);
-
+    
     // 2. Thông báo thành công
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -47,15 +43,33 @@ class _CreateHousePageState extends State<CreateHousePage> {
       ),
     );
 
-    // 3. CHUYỂN HƯỚNG VỀ TRANG CHỦ
-    // Xóa hết các trang cũ (Welcome, CreateHouse) khỏi stack và vào thẳng Expenses (hoặc Home)
+    // 3. CHUYỂN HƯỚNG
     Navigator.pushNamedAndRemoveUntil(context, '/expenses', (route) => false);
+  }
+
+  // Hàm helper để tạo style cho TextField giống nhau (Thay thế AuthTextField)
+  InputDecoration _buildInputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Hoặc Color(0xFFF5F6FA) tùy thiết kế
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -72,76 +86,86 @@ class _CreateHousePageState extends State<CreateHousePage> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start, // Canh lề trái cho Label
           children: [
-            const Text(
-              "Thiết lập ngôi nhà chung của bạn", 
-              style: TextStyle(color: Colors.grey)
-            ),
-            const SizedBox(height: 32),
-
-            // --- 1. Ảnh đại diện nhà (Placeholder) ---
-            GestureDetector(
-              onTap: () {
-                // TODO: Mở thư viện ảnh
-              },
-              child: Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.orange.shade100, width: 2),
-                ),
-                child: const Icon(Icons.add_photo_alternate, size: 40, color: Colors.orange),
+            const Center(
+              child: Text(
+                "Thiết lập ngôi nhà chung của bạn", 
+                style: TextStyle(color: Colors.grey)
               ),
             ),
-            const SizedBox(height: 12),
-            const Text(
-              "Thêm ảnh đại diện cho \"Nhà\"", 
-              style: TextStyle(fontSize: 12, color: Colors.grey)
+            const SizedBox(height: 32),
+
+            // --- 1. Ảnh đại diện nhà ---
+            Center(
+              child: Column(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      // TODO: Mở thư viện ảnh
+                    },
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.orange.shade100, width: 2),
+                      ),
+                      child: const Icon(Icons.add_photo_alternate, size: 40, color: Colors.orange),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    "Thêm ảnh đại diện cho \"Nhà\"", 
+                    style: TextStyle(fontSize: 12, color: Colors.grey)
+                  ),
+                ],
+              ),
             ),
             
             const SizedBox(height: 32),
 
-            // --- 2. Form nhập liệu (Dùng Widget tái sử dụng) ---
+            // --- 2. Form nhập liệu ---
             
-            const AuthLabel(text: "Tên nhà*"),
-            AuthTextField(
-              controller: _nameController, 
-              hintText: "Ví dụ: Nhà trọ Hạnh Phúc"
+            // Thay AuthLabel bằng Text thường
+            const Text(
+              "Tên nhà*", 
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87)
+            ),
+            const SizedBox(height: 8),
+            
+            // Thay AuthTextField bằng TextField thường với decoration
+            TextField(
+              controller: _nameController,
+              decoration: _buildInputDecoration("Ví dụ: Nhà trọ Hạnh Phúc"),
             ),
             
             const SizedBox(height: 20),
             
-            const AuthLabel(text: "Mô tả (Không bắt buộc)"),
-            // Với AuthTextField mặc định chỉ 1 dòng, nếu muốn nhiều dòng 
-            // bạn có thể sửa AuthTextField để nhận maxLines hoặc dùng Container bọc TextField thủ công
-            // Ở đây mình dùng Container thủ công cho ô Mô tả để đẹp hơn
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: TextField(
-                controller: _descController,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  hintText: "Ví dụ: Địa chỉ, quy định chung...",
-                  hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.all(16),
-                ),
-              ),
+            // Thay AuthLabel bằng Text thường
+            const Text(
+              "Mô tả (Không bắt buộc)", 
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87)
+            ),
+            const SizedBox(height: 8),
+
+            // Ô nhập mô tả nhiều dòng
+            TextField(
+              controller: _descController,
+              maxLines: 4,
+              decoration: _buildInputDecoration("Ví dụ: Địa chỉ, quy định chung..."),
             ),
 
             const SizedBox(height: 40),
 
-            // --- 3. Nút Tạo (Dùng Widget tái sử dụng) ---
-            PrimaryButton(
-              text: "Tạo nhà", 
-              onPressed: _handleCreateHouse
+            // --- 3. Nút Tạo ---
+            SizedBox(
+              width: double.infinity,
+              child: PrimaryButton(
+                text: "Tạo nhà", 
+                onPressed: _handleCreateHouse
+              ),
             ),
           ],
         ),
