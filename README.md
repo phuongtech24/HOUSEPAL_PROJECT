@@ -23,6 +23,7 @@ main (Nhánh gốc tổng hợp)
 └── 👤 Nhánh: Tuan (Base của Tuấn)
     ├── 🌿 feature/chores          (Phân công việc nhà)
     └── 🌿 feature/homes           (Màn hình trang chủ/Dashboard)
+└── 👤 Nhánh: dev (nhánh phát triển)
 
 📋 Chi tiết Phân công nhiệm vụ
 Dưới đây là danh sách các nhánh tính năng được phát triển bởi từng thành viên:
@@ -86,4 +87,5 @@ Chạy Profile: git checkout feature/profile
 Lưu ý: Sau khi chuyển nhánh, hãy chạy lệnh flutter pub get để cập nhật thư viện trước khi bấm Run.
 
 Developed by HousePal Team - 2025
+
 
