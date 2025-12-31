@@ -1,9 +1,9 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hs/features/bulletin_board/presentation/pages/add_bulletin_page.dart';
-import 'package:hs/features/bulletin_board/presentation/pages/bulletin_board_page.dart';
-import 'package:hs/features/profile/presentation/pages/profile_page.dart';
+// import 'package:hs/features/bulletin_board/presentation/pages/add_bulletin_page.dart';
+// import 'package:hs/features/bulletin_board/presentation/pages/bulletin_board_page.dart';
+// import 'package:hs/features/profile/presentation/pages/profile_page.dart';
 // import 'package:hs/features/bulletin_board/presentation/pages/add_bulletin_page.dart';
 // import 'package:hs/features/bulletin_board/presentation/pages/bulletin_board_page.dart';
 // import 'package:hs/features/profile/presentation/pages/profile_page.dart';
@@ -19,23 +19,23 @@ import 'features/authentication/presentation/pages/register_page.dart';
 import 'features/authentication/presentation/bloc/auth_bloc.dart';
 
 // --- 2. HOUSE SETUP (Sảnh chờ & Tạo nhà) ---
-import 'features/house_setup/presentation/pages/welcome_page.dart';
-import 'features/house_setup/presentation/pages/join_house_page.dart';
-import 'features/house_setup/presentation/pages/create_house_page.dart';
-import 'features/house_setup/presentation/pages/house_management_page.dart';
+// import 'features/house_setup/presentation/pages/welcome_page.dart';
+// import 'features/house_setup/presentation/pages/join_house_page.dart';
+// import 'features/house_setup/presentation/pages/create_house_page.dart';
+// import 'features/house_setup/presentation/pages/house_management_page.dart';
 
 
-// --- 4. EXPENSES (Quỹ chung) ---
-import 'features/expenses/presentation/pages/expenses_page.dart';
-import 'features/expenses/presentation/pages/add_expense_page.dart';
-import 'features/expenses/presentation/pages/debt_optimization_page.dart';
-import 'features/expenses/presentation/pages/expense_detail_page.dart';
+// // --- 4. EXPENSES (Quỹ chung) ---
+// import 'features/expenses/presentation/pages/expenses_page.dart';
+// import 'features/expenses/presentation/pages/add_expense_page.dart';
+// import 'features/expenses/presentation/pages/debt_optimization_page.dart';
+// import 'features/expenses/presentation/pages/expense_detail_page.dart';
 
-// 5. Chores and home
-import 'features/homes/presentation/home_page.dart';
-import 'features/chores/presentation/pages/chores_page.dart';
-import 'features/chores/presentation/pages/create_chore_page.dart';
-import 'features/chores/presentation/pages/chores_ranking_page.dart';
+// // 5. Chores and home
+// import 'features/homes/presentation/home_page.dart';
+// import 'features/chores/presentation/pages/chores_page.dart';
+// import 'features/chores/presentation/pages/create_chore_page.dart';
+// import 'features/chores/presentation/pages/chores_ranking_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -87,32 +87,32 @@ class MyApp extends StatelessWidget {
         '/register': (context) => const RegisterPage(),
 
         // --- Onboarding (Chưa có nhà) ---
-        '/welcome': (context) => const WelcomePage(),
-        '/join_house': (context) => const JoinHousePage(),
-        '/create_house': (context) => const CreateHousePage(),
+        // '/welcome': (context) => const WelcomePage(),
+        // '/join_house': (context) => const JoinHousePage(),
+        // '/create_house': (context) => const CreateHousePage(),
 
         
         
         // --- Expenses ---
-        '/expenses': (context) => const ExpensesPage(),
-        '/add_expense': (context) => const AddExpensePage(),
-        '/debt_optimization': (context) => const DebtOptimizationPage(),
-        //'/expense_detail': (context) => const ExpenseDetailPage(), // Chi tiết chi tiêu
+        // '/expenses': (context) => const ExpensesPage(),
+        // '/add_expense': (context) => const AddExpensePage(),
+        // '/debt_optimization': (context) => const DebtOptimizationPage(),
+        // //'/expense_detail': (context) => const ExpenseDetailPage(), // Chi tiết chi tiêu
         
        
-        '/house_management': (context) => const HouseManagementPage(),
+        // '/house_management': (context) => const HouseManagementPage(),
 
-        // --- Home ---
-        '/home': (context) => const HomePage(),
+        // // --- Home ---
+        // '/home': (context) => const HomePage(),
 
         // --- Chores ---
-        '/chores': (context) => const ChoresPage(),
-        '/chores/new': (context) => const CreateChorePage(),
-        '/chores/ranking': (context) => const ChoresRankingPage(),
+        // '/chores': (context) => const ChoresPage(),
+        // '/chores/new': (context) => const CreateChorePage(),
+        // '/chores/ranking': (context) => const ChoresRankingPage(),
 
-        '/bulletin_board': (context) => const BulletinBoardPage(),
-        '/profile': (context) => const ProfilePage(),
-        '/add_bulletin': (context) => const AddBulletinPage(),
+        // '/bulletin_board': (context) => const BulletinBoardPage(),
+        // '/profile': (context) => const ProfilePage(),
+        // '/add_bulletin': (context) => const AddBulletinPage(),
       },
       
     // onGenerateRoute: (settings) => MaterialPageRoute(
