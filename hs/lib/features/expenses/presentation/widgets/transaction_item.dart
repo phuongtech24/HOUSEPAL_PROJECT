@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+// ... (imports remain the same)
+
 class TransactionItem extends StatelessWidget {
   final String title;
   final String payer;
@@ -26,11 +28,15 @@ class TransactionItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cardColor = Theme.of(context).cardTheme.color ?? Colors.white;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final subTextColor = Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor, // [FIX] Dynamic background
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -47,9 +53,9 @@ class TransactionItem extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                Text(title, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: textColor)), // [FIX]
                 const SizedBox(height: 4),
-                Text("Người trả: $payer", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                Text("Người trả: $payer", style: TextStyle(color: subTextColor, fontSize: 12)), // [FIX]
               ],
             ),
           ),

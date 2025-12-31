@@ -49,8 +49,8 @@ class _LoginPageState extends State<LoginPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Đăng nhập thành công!'))
         );
-        // Chuyển hướng vào trang chính (Expenses hoặc Welcome)
-        Navigator.pushReplacementNamed(context, '/expenses'); 
+        // Chuyển hướng vào trang chính (Home)
+        Navigator.pushReplacementNamed(context, '/home');  
       }
     } catch (e) {
       setState(() => _isLoading = false); // Tắt loading

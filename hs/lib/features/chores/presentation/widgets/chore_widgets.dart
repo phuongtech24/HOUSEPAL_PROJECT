@@ -6,6 +6,8 @@ const Color kCardBackground = Colors.white;
 const Color kGreyText = Color(0xFF8E8E93);
 const BorderRadius kCardRadius = BorderRadius.all(Radius.circular(16));
 
+// ... (imports remain the same) 
+
 class SegmentedFilter extends StatelessWidget {
   const SegmentedFilter({
     super.key,
@@ -20,10 +22,14 @@ class SegmentedFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final activeBg = Theme.of(context).cardTheme.color ?? kCardBackground;
+    final inactiveBg = Theme.of(context).brightness == Brightness.dark ? Colors.grey[800] : const Color(0xFFE7F1E9);
+    final activeText = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+
     return Container(
       height: 40,
       decoration: BoxDecoration(
-        color: const Color(0xFFE7F1E9),
+        color: inactiveBg, // [FIX] Dynamic background
         borderRadius: BorderRadius.circular(20),
       ),
       padding: const EdgeInsets.all(4),
@@ -37,7 +43,7 @@ class SegmentedFilter extends StatelessWidget {
                 duration: const Duration(milliseconds: 180),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: active ? kCardBackground : Colors.transparent,
+                  color: active ? activeBg : Colors.transparent, // [FIX] Dynamic active bg
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
@@ -45,7 +51,7 @@ class SegmentedFilter extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: active ? Colors.black : kGreyText,
+                    color: active ? activeText : kGreyText, // [FIX] Dynamic text
                   ),
                 ),
               ),
@@ -64,9 +70,12 @@ class LeaderboardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cardColor = Theme.of(context).cardTheme.color ?? kCardBackground;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+
     return Container(
       decoration: BoxDecoration(
-        color: kCardBackground,
+        color: cardColor, // [FIX] Dynamic
         borderRadius: kCardRadius,
         boxShadow: [
           BoxShadow(
@@ -82,10 +91,10 @@ class LeaderboardCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Bảng xếp hạng',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: textColor), // [FIX] Dynamic
                 ),
               ),
               GestureDetector(

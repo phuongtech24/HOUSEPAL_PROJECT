@@ -99,7 +99,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
 
       // 4. CHUYỂN MÀN HÌNH
       if (mounted) {
-        Navigator.pushNamedAndRemoveUntil(context, '/welcome', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
       }
 
     } catch (e) {

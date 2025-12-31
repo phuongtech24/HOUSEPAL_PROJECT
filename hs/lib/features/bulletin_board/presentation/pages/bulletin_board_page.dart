@@ -9,6 +9,8 @@ import '../widgets/bulletin_filter_bar.dart';
 import '../widgets/bulletin_note_card.dart';  
 import 'add_bulletin_page.dart';
 
+// ... (imports remain the same)
+
 class BulletinBoardPage extends StatefulWidget {
   const BulletinBoardPage({super.key});
 
@@ -22,11 +24,16 @@ class _BulletinBoardPageState extends State<BulletinBoardPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Dynamic Colors
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final subHeaderColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: bgColor, // [FIX] Dynamic background
       appBar: AppBar(
-        title: const Text("Bảng tin", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 20)),
-        backgroundColor: const Color(0xFFF5F7FA),
+        title: Text("Bảng tin", style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 20)), // [FIX] Dynamic text
+        backgroundColor: bgColor, // [FIX] Dynamic appBar
         elevation: 0,
         centerTitle: true,
         automaticallyImplyLeading: false,
@@ -37,6 +44,7 @@ class _BulletinBoardPageState extends State<BulletinBoardPage> {
           BulletinFilterBar(
             selectedIndex: _filterIndex,
             onTabSelected: (index) => setState(() => _filterIndex = index),
+            // You might need to update this widget internally too if it has hardcoded colors
           ),
 
           Expanded(
@@ -48,9 +56,9 @@ class _BulletinBoardPageState extends State<BulletinBoardPage> {
                   
                   // --- SECTION GHI CHÚ ---
                   if (_filterIndex == 0 || _filterIndex == 1) ...[
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12.0),
-                      child: Text("Ghi chú chung", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12.0),
+                      child: Text("Ghi chú chung", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: subHeaderColor)),
                     ),
                     StreamBuilder<List<BulletinNoteModel>>(
                       stream: _service.getNotesStream(),
@@ -70,9 +78,9 @@ class _BulletinBoardPageState extends State<BulletinBoardPage> {
 
                   // --- SECTION MUA SẮM ---
                   if (_filterIndex == 0 || _filterIndex == 2) ...[
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12.0),
-                      child: Text("Cần mua sắm", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12.0),
+                      child: Text("Cần mua sắm", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: subHeaderColor)),
                     ),
                     StreamBuilder<List<ShoppingItemModel>>(
                       stream: _service.getShoppingStream(),
