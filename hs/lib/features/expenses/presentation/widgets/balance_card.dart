@@ -1,72 +1,145 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 
+// Enum để định nghĩa loại nào đang được chọn
+enum HighlightType {
+  debt,       // Chọn ô "Bạn đang nợ"
+  receivable, // Chọn ô "Người khác nợ bạn"
+}
+
+// ... (imports remain the same)
+
 class BalanceCard extends StatelessWidget {
-  const BalanceCard({super.key});
+  final HighlightType highlightType; // Biến quyết định tô màu ô nào
+  final String totalBalance;
+  final String debtAmount;
+  final String receivableAmount;
+
+  const BalanceCard({
+    super.key,
+    // Mặc định chọn ô 'debt' (nợ), nhưng có thể thay đổi khi gọi
+    this.highlightType = HighlightType.debt, 
+    this.totalBalance = "70.000đ",
+    this.debtAmount = "500.000đ",
+    this.receivableAmount = "850.000đ",
+  });
 
   @override
   Widget build(BuildContext context) {
+    // Logic xác định viền (Border)
+    // Nếu type là debt thì viền xanh, ngược lại là null
+    final Border? debtBorder = (highlightType == HighlightType.debt)
+        ? Border.all(color: Colors.blue, width: 2)
+        : null;
+
+    // Nếu type là receivable thì viền xanh, ngược lại là null
+    final Border? receivableBorder = (highlightType == HighlightType.receivable)
+        ? Border.all(color: Colors.blue, width: 2)
+        : null;
+
+    final cardColor = Theme.of(context).cardTheme.color ?? Colors.white;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final debtBg = isDark ? const Color(0xFF3E2723) : const Color(0xFFFFF0F0);
+    final receiveBg = isDark ? const Color(0xFF1B5E20) : const Color(0xFFE0F9F4);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor, // [FIX] Dynamic background
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05), // Dùng withOpacity cho ổn định
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // --- HEADER ---
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Tổng cân đối của bạn", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+               Text(
+                "Tổng cân đối của bạn",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor), // [FIX] Dynamic text
+              ),
               GestureDetector(
-                onTap: () {},
-                child: const Text("Tối ưu công nợ >", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
+                onTap: () {
+                  Navigator.pushNamed(context, '/debt_optimization');
+                },
+                child: const Text(
+                  "Tối ưu công nợ >",
+                  style: TextStyle(
+                      color: AppColors.primary, fontWeight: FontWeight.w600),
+                ),
               )
             ],
           ),
           const SizedBox(height: 8),
-          const Text("70.000đ", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+          
+          // --- TỔNG TIỀN ---
+          Text(
+            totalBalance,
+            style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: textColor), // [FIX] Dynamic text
+          ),
           const SizedBox(height: 20),
+
+          // --- HAI Ô TRẠNG THÁI ---
           Row(
             children: [
-              // Ô Bạn đang nợ
+              // 1. Ô BẠN ĐANG NỢ (Màu Đỏ)
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF0F0), // Đỏ rất nhạt
+                    color: debtBg, // [FIX] Dynamic red tint
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.blue, width: 2), // Viền xanh như trong ảnh design
+                    border: debtBorder, // <--- Logic viền tự động ở đây
                   ),
-                  child: const Column(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Bạn đang nợ", style: TextStyle(color: AppColors.debtRed, fontSize: 12)),
-                      SizedBox(height: 4),
-                      Text("500.000đ", style: TextStyle(color: AppColors.debtRed, fontWeight: FontWeight.bold, fontSize: 18)),
+                      const Text("Bạn đang nợ",
+                          style: TextStyle(
+                              color: AppColors.debtRed, fontSize: 12)),
+                      const SizedBox(height: 4),
+                      Text(debtAmount,
+                          style: const TextStyle(
+                              color: AppColors.debtRed,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18)),
                     ],
                   ),
                 ),
               ),
+              
               const SizedBox(width: 12),
-              // Ô Người khác nợ bạn
+              
+              // 2. Ô NGƯỜI KHÁC NỢ BẠN (Màu Xanh)
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE0F9F4), // Xanh rất nhạt
+                    color: receiveBg, // [FIX] Dynamic green tint
                     borderRadius: BorderRadius.circular(12),
+                    border: receivableBorder, // <--- Logic viền tự động ở đây
                   ),
-                  child: const Column(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Người khác nợ bạn", style: TextStyle(color: Colors.teal, fontSize: 12)),
-                      SizedBox(height: 4),
-                      Text("850.000đ", style: TextStyle(color: Colors.teal, fontWeight: FontWeight.bold, fontSize: 18)),
+                      const Text("Người khác nợ bạn",
+                          style: TextStyle(color: Colors.teal, fontSize: 12)),
+                      const SizedBox(height: 4),
+                      Text(receivableAmount,
+                          style: const TextStyle(
+                              color: Colors.teal,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18)),
                     ],
                   ),
                 ),
