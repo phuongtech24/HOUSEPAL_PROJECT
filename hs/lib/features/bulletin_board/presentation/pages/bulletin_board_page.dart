@@ -12,6 +12,8 @@ import 'shopping_detail_page.dart';
 
 // ... (imports remain the same)
 
+// ... (imports remain the same)
+
 class BulletinBoardPage extends StatefulWidget {
   const BulletinBoardPage({super.key});
 

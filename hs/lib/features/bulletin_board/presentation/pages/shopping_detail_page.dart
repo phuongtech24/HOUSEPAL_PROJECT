@@ -3,6 +3,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../data/models/shopping_item_model.dart';
 import '../../data/datasources/bulletin_service.dart';
 import 'add_bulletin_page.dart';
+import 'delete_success_page.dart';
 
 class ShoppingDetailPage extends StatelessWidget {
   final ShoppingItemModel item;
@@ -69,15 +70,56 @@ class ShoppingDetailPage extends StatelessWidget {
             const SizedBox(height: 12),
             // Nút Xóa
             InkWell(
-              onTap: () {
-                Navigator.pop(context);
-                _showDeleteDialog(context);
+              onTap: () async {
+                // Lưu navigator trước
+                final navigator = Navigator.of(context);
+                final rootNavigator = Navigator.of(context, rootNavigator: true);
+                
+                navigator.pop(); // Đóng bottom sheet
+                
+                // Hiện confirm dialog
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text("Xác nhận xóa"),
+                    content: const Text("Bạn có chắc chắn muốn xóa vật phẩm này không?"),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Hủy")),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text("Xóa", style: TextStyle(color: Colors.red)),
+                      ),
+                    ],
+                  ),
+                );
+                
+                if (confirm == true) {
+                  try {
+                    await _service.deleteShoppingItem(item.id);
+                    
+                    // Chuyển sang trang thành công
+                    rootNavigator.pushReplacement(
+                      MaterialPageRoute(
+                        builder: (context) => const DeleteSuccessPage(
+                          title: "Vật phẩm cần mua đã\nđược xóa thành công!",
+                          message: "Thông báo đã xóa vật phẩm cần mua khỏi\nBảng tin thành công!",
+                        ),
+                      ),
+                    );
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Lỗi: $e"), backgroundColor: Colors.red),
+                      );
+                    }
+                  }
+                }
               },
               borderRadius: BorderRadius.circular(16),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFEBEE), // Nền đỏ nhạt
+                  color: const Color(0xFFFFEBEE),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Row(
@@ -107,150 +149,6 @@ class ShoppingDetailPage extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  void _showDeleteDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Align(
-                alignment: Alignment.topRight,
-                child: GestureDetector(
-                  onTap: () => Navigator.pop(ctx),
-                  child: Icon(Icons.close, color: Colors.grey[400]),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFEBEE),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.delete_outline, color: Colors.red, size: 32),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                "Xóa khỏi Bảng tin",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                "Bạn có chắc chắn muốn xóa mục đã chọn không?\nHành động này không thể hoàn tác.",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey, fontSize: 14, height: 1.5),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 48,
-                      child: TextButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        style: TextButton.styleFrom(
-                          backgroundColor: Colors.grey[100],
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: const Text("Hủy bỏ", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: SizedBox(
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                           await _service.deleteShoppingItem(item.id);
-                           if (context.mounted) {
-                             Navigator.pop(ctx); // Close Dialog
-                             Navigator.pop(context); // Back to list
-                             // Show success dialog (optional, but requested in flow)
-                             _showSuccessDialog(context);
-                           }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFF3B30),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          elevation: 0,
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.delete_outline, color: Colors.white, size: 18),
-                            SizedBox(width: 8),
-                            Text("XÁC NHẬN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              )
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-  
-  void _showSuccessDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: Color(0x3300E06C), blurRadius: 20, offset: Offset(0, 10))]
-                ),
-                child: const Icon(Icons.check, color: Colors.white, size: 32),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                "Vật phẩm cần mua đã được\nxóa thành công!",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, height: 1.3),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                "Thông báo đã xóa vật phẩm cần mua khỏi Bảng tin thành công!",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey, fontSize: 14),
-              ),
-              const SizedBox(height: 30),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  child: const Text("Đóng", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
