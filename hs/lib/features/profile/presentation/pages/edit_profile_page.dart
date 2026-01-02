@@ -297,4 +297,3 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 }
 
-// [Update] Temporary logic adjustment
