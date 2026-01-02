@@ -21,13 +21,14 @@ class BulletinService {
 
   // --- 1. GHI CHÚ (NOTES) ---
 
-  Future<void> addNote(String title, String content, bool isPinned) async {
+  Future<BulletinNoteModel?> addNote(String title, String content, bool isPinned) async {
     final user = _auth.currentUser;
-    if (user == null) return;
+    if (user == null) return null;
 
     final houseId = await _getHouseId();
     final userDoc = await _firestore.collection('users').doc(user.uid).get();
-    final userName = userDoc['name'] ?? 'Thành viên'; // Thêm check null an toàn
+    final userName = userDoc['name'] ?? 'Thành viên';
+    final createdAt = DateTime.now();
 
     final note = BulletinNoteModel(
       id: '',
@@ -36,14 +37,25 @@ class BulletinService {
       authorName: userName,
       authorId: user.uid,
       isPinned: isPinned,
-      createdAt: DateTime.now(),
+      createdAt: createdAt,
     );
 
-    await _firestore
+    final docRef = await _firestore
         .collection('houses')
         .doc(houseId)
         .collection('notes')
         .add(note.toMap());
+
+    // Trả về note với ID từ Firestore
+    return BulletinNoteModel(
+      id: docRef.id,
+      title: title,
+      content: content,
+      authorName: userName,
+      authorId: user.uid,
+      isPinned: isPinned,
+      createdAt: createdAt,
+    );
   }
 
   Future<void> updateNote(
@@ -92,41 +104,54 @@ class BulletinService {
   // --- 2. MUA SẮM (SHOPPING) ---
 
   // CẬP NHẬT: Thêm tham số quantity, unit, isUrgent, imageUrl
-  Future<void> addShoppingItem(
+  Future<ShoppingItemModel?> addShoppingItem(
     String itemName, 
     String note, 
     double quantity, 
     String unit, 
     bool isUrgent, {
-    String? imageUrl, // Tham số tùy chọn (nếu có ảnh)
+    String? imageUrl,
   }) async {
     final user = _auth.currentUser;
-    if (user == null) return;
+    if (user == null) return null;
 
     final houseId = await _getHouseId();
     final userDoc = await _firestore.collection('users').doc(user.uid).get();
     final userName = userDoc.data()?['name'] ?? 'Thành viên';
+    final createdAt = DateTime.now();
 
-    // Tạo model với đầy đủ dữ liệu mới
     final item = ShoppingItemModel(
-      id: '', // Firestore tự sinh
+      id: '',
       itemName: itemName,
       note: note,
       requestedBy: userName,
       isBought: false,
-      createdAt: DateTime.now(),
-      // Các trường mới thêm vào:
+      createdAt: createdAt,
       quantity: quantity,
       unit: unit,
       isUrgent: isUrgent,
       imageUrl: imageUrl,
     );
 
-    await _firestore
+    final docRef = await _firestore
         .collection('houses')
         .doc(houseId)
         .collection('shopping_items')
         .add(item.toMap());
+
+    // Trả về item với ID từ Firestore
+    return ShoppingItemModel(
+      id: docRef.id,
+      itemName: itemName,
+      note: note,
+      requestedBy: userName,
+      isBought: false,
+      createdAt: createdAt,
+      quantity: quantity,
+      unit: unit,
+      isUrgent: isUrgent,
+      imageUrl: imageUrl,
+    );
   }
 
   // Đổi trạng thái Đã mua / Chưa mua

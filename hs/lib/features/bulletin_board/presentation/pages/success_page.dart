@@ -1,17 +1,50 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../data/models/bulletin_note_model.dart';
+import '../../data/models/shopping_item_model.dart';
+import 'bulletin_detail_page.dart';
+import 'shopping_detail_page.dart';
 
 class SuccessPage extends StatelessWidget {
   final String message;
   final String previewTitle;
   final bool isNote;
+  final BulletinNoteModel? note;           // Ghi chú vừa thêm
+  final ShoppingItemModel? shoppingItem;   // Vật phẩm vừa thêm
 
   const SuccessPage({
     super.key, 
     required this.message, 
     required this.previewTitle,
     required this.isNote,
+    this.note,
+    this.shoppingItem,
   });
+
+  void _handleViewDetail(BuildContext context) {
+    if (isNote && note != null) {
+      // Điều hướng đến trang chi tiết ghi chú và xóa các trang trước đó trừ trang bảng tin
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BulletinDetailPage(note: note!),
+        ),
+        (route) => route.isFirst, // Giữ lại trang bảng tin (route đầu tiên)
+      );
+    } else if (!isNote && shoppingItem != null) {
+      // Điều hướng đến trang chi tiết vật phẩm và xóa các trang trước đó trừ trang bảng tin
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ShoppingDetailPage(item: shoppingItem!),
+        ),
+        (route) => route.isFirst, // Giữ lại trang bảng tin (route đầu tiên)
+      );
+    } else {
+      // Nếu không có dữ liệu, quay về trang bảng tin
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,12 +110,12 @@ class SuccessPage extends StatelessWidget {
             ),
             const Spacer(),
 
-            // Nút Xem
+            // Nút Xem - Điều hướng đến trang chi tiết
             SizedBox(
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
-                onPressed: () => Navigator.pop(context), // Logic đơn giản là quay về
+                onPressed: () => _handleViewDetail(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -93,12 +126,15 @@ class SuccessPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            // Nút Đóng
+            // Nút Đóng - Về trang Bảng tin
             SizedBox(
               width: double.infinity,
               height: 52,
               child: TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () {
+                  // Pop tất cả các trang và quay về trang bảng tin (route gốc)
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                },
                 style: TextButton.styleFrom(
                   backgroundColor: const Color(0xFFDDE2E5), // Màu xám đậm hơn chút
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

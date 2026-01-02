@@ -86,6 +86,8 @@ class _AddBulletinPageState extends State<AddBulletinPage> with SingleTickerProv
       String successMsg = "";
       String subMsg = "";
       bool isNote = _tabController.index == 0;
+      BulletinNoteModel? createdNote;
+      ShoppingItemModel? createdItem;
 
       if (isNote) {
         // Xử lý lưu Ghi chú
@@ -98,9 +100,19 @@ class _AddBulletinPageState extends State<AddBulletinPage> with SingleTickerProv
             _isPinned,
           );
           successMsg = "Ghi chú đã được cập nhật thành công!";
+          // Tạo object note đã cập nhật để truyền vào SuccessPage
+          createdNote = BulletinNoteModel(
+            id: widget.note!.id,
+            title: _titleController.text.trim(),
+            content: _contentController.text.trim(),
+            authorName: widget.note!.authorName,
+            authorId: widget.note!.authorId,
+            isPinned: _isPinned,
+            createdAt: widget.note!.createdAt,
+          );
         } else {
-          // CREATE NEW
-          await _service.addNote(
+          // CREATE NEW - Lưu và nhận về object với ID từ Firestore
+          createdNote = await _service.addNote(
             _titleController.text.trim(),
             _contentController.text.trim(),
             _isPinned,
@@ -109,7 +121,7 @@ class _AddBulletinPageState extends State<AddBulletinPage> with SingleTickerProv
         }
         subMsg = _titleController.text;
       } else {
-        // Xử lý lưu Mua sắm (Đã cập nhật đủ tham số)
+        // Xử lý lưu Mua sắm
         if (widget.shoppingItem != null) {
           // UPDATE
           await _service.updateShoppingItem(
@@ -119,18 +131,29 @@ class _AddBulletinPageState extends State<AddBulletinPage> with SingleTickerProv
             _quantity,
             _selectedUnit,
             _isUrgent,
-            // imageUrl: ...
           );
           successMsg = "Vật phẩm đã được cập nhật thành công!";
+          // Tạo object item đã cập nhật để truyền vào SuccessPage
+          createdItem = ShoppingItemModel(
+            id: widget.shoppingItem!.id,
+            itemName: _itemNameController.text.trim(),
+            note: _itemNoteController.text.trim(),
+            requestedBy: widget.shoppingItem!.requestedBy,
+            isBought: widget.shoppingItem!.isBought,
+            createdAt: widget.shoppingItem!.createdAt,
+            quantity: _quantity,
+            unit: _selectedUnit,
+            isUrgent: _isUrgent,
+            imageUrl: widget.shoppingItem!.imageUrl,
+          );
         } else {
-          // CREATE NEW
-          await _service.addShoppingItem(
-            _itemNameController.text.trim(), // 1. Tên
-            _itemNoteController.text.trim(), // 2. Ghi chú
-            _quantity,                       // 3. Số lượng
-            _selectedUnit,                   // 4. Đơn vị
-            _isUrgent,                       // 5. Gấp hay không
-            // imageUrl: ... (Nếu sau này bạn làm upload ảnh thì truyền link vào đây)
+          // CREATE NEW - Lưu và nhận về object với ID từ Firestore
+          createdItem = await _service.addShoppingItem(
+            _itemNameController.text.trim(),
+            _itemNoteController.text.trim(),
+            _quantity,
+            _selectedUnit,
+            _isUrgent,
           );
           successMsg = "Vật phẩm cần mua sắm mới của bạn đã được thêm vào Bảng tin chung.";
         }
@@ -138,7 +161,7 @@ class _AddBulletinPageState extends State<AddBulletinPage> with SingleTickerProv
       }
 
       if (mounted) {
-        // Chuyển sang trang Thành công
+        // Chuyển sang trang Thành công với dữ liệu để xem chi tiết
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -146,6 +169,8 @@ class _AddBulletinPageState extends State<AddBulletinPage> with SingleTickerProv
               message: successMsg,
               previewTitle: subMsg,
               isNote: isNote,
+              note: createdNote,
+              shoppingItem: createdItem,
             ),
           ),
         );
