@@ -4,12 +4,14 @@ import '../../../../core/constants/app_colors.dart';
 import '../../data/models/bulletin_note_model.dart';
 import '../../data/datasources/bulletin_service.dart';
 import 'add_bulletin_page.dart';
+import 'delete_success_page.dart';
 
 class BulletinDetailPage extends StatelessWidget {
   final BulletinNoteModel note;
   final BulletinService _service = BulletinService();
 
   BulletinDetailPage({super.key, required this.note});
+
 
   void _showOptions(BuildContext context) {
     showModalBottomSheet(
@@ -71,28 +73,59 @@ class BulletinDetailPage extends StatelessWidget {
             // Nút Xóa
             InkWell(
               onTap: () async {
-                // Xử lý xóa
-                Navigator.pop(context);
+                // LƯU NavigatorState TRƯỚC KHI LÀM GÌ
+                final navigator = Navigator.of(context);
+                final rootNavigator = Navigator.of(context, rootNavigator: true);
+                
+                // Đóng bottom sheet
+                navigator.pop();
+                
+                // Hiện dialog xác nhận
                 final confirm = await showDialog<bool>(
                   context: context,
-                  builder: (ctx) => AlertDialog(
+                  barrierDismissible: false,
+                  builder: (dialogContext) => AlertDialog(
                     title: const Text("Xác nhận xóa"),
                     content: const Text("Bạn có chắc chắn muốn xóa ghi chú này không?"),
                     actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Hủy")),
                       TextButton(
-                        onPressed: () => Navigator.pop(ctx, true), 
+                        onPressed: () => Navigator.pop(dialogContext, false), 
+                        child: const Text("Hủy")
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(dialogContext, true), 
                         child: const Text("Xóa", style: TextStyle(color: Colors.red)),
                       ),
                     ],
                   ),
                 );
 
+                // Nếu người dùng xác nhận xóa
                 if (confirm == true) {
-                   await _service.deleteNote(note.id);
-                   if (context.mounted) {
-                     Navigator.pop(context); // Quay về danh sách
-                   }
+                  try {
+                    // Xóa note
+                    await _service.deleteNote(note.id);
+                    
+                    // Chuyển sang trang Thành công
+                    rootNavigator.pushReplacement(
+                      MaterialPageRoute(
+                        builder: (context) => DeleteSuccessPage(
+                          title: "Ghi chú đã được\nxóa thành công!",
+                          message: "Thông báo đã xóa ghi chú khỏi\nBảng tin thành công!",
+                        ),
+                      ),
+                    );
+                  } catch (e) {
+                    // Hiển thị lỗi nếu có
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("Lỗi khi xóa: $e"),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
                 }
               },
               borderRadius: BorderRadius.circular(16),
