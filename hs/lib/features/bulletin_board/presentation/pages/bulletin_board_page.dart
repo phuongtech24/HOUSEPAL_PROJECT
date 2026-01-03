@@ -147,4 +147,3 @@ class _BulletinBoardPageState extends State<BulletinBoardPage> {
 }
 
 
-// [Refactor] Code optimization pass 4
