@@ -686,3 +686,5 @@ class _ActivityItem extends StatelessWidget {
 }
 
 // Updated logic
+
+// Minor optimization
