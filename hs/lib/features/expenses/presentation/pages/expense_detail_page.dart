@@ -1,152 +1,189 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../data/models/expense_model.dart';
+import '../../data/datasources/ExpenseService.dart';
+import 'edit_expense_page.dart';
 
 class ExpenseDetailPage extends StatelessWidget {
-  // Trong thực tế, bạn sẽ truyền Expense Object vào đây. 
-  // Hiện tại tôi dùng dữ liệu giả lập (dummy data) theo ảnh mẫu.
-  final Map<String, dynamic>? arguments;
+  // 1. Khai báo biến nhận dữ liệu
+  final ExpenseModel expense;
 
-  const ExpenseDetailPage({super.key, this.arguments});
+  const ExpenseDetailPage({super.key, required this.expense});
 
   @override
   Widget build(BuildContext context) {
+    final currencyFormat = NumberFormat("#,##0", "vi_VN");
+    final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
+    final ExpenseService _service = ExpenseService();
+
+    // Dynamic Colors
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
+    final cardColor = Theme.of(context).cardTheme.color ?? Colors.white;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF5F6FA),
+        title: Text("Chi tiết giao dịch", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+        backgroundColor: bgColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: textColor),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text("Chi tiết khoản chi", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        centerTitle: true,
+        actions: [
+          // Nút Sửa
+          IconButton(
+            icon: const Icon(Icons.edit, color: Colors.blue),
+            onPressed: () {
+               Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EditExpensePage(expense: expense),
+                ),
+              );
+            },
+          ),
+          // Nút Xóa
+          IconButton(
+            icon: const Icon(Icons.delete, color: Colors.red),
+            onPressed: () {
+              _showDeleteConfirmDialog(context, _service);
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Thẻ thông tin chính
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
-              ),
+            // Icon và Tên khoản chi
+            Center(
               child: Column(
                 children: [
-                  const Text("Đi siêu thị BigC", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.grey[800] : AppColors.primary.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _getIconForCategory(expense.category),
+                      size: 40,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    expense.title,
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textColor),
+                  ),
                   const SizedBox(height: 8),
-                  const Text("875.000đ", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.primary)),
-                  const SizedBox(height: 24),
-                  _buildInfoRow("Người trả", "Nam Phương"),
-                  const SizedBox(height: 12),
-                  _buildInfoRow("Ngày chi", "28/11/2025"),
-                  const SizedBox(height: 12),
-                  _buildInfoRow("Loại chi tiêu", "Đi chợ"),
+                  Text(
+                    "${currencyFormat.format(expense.amount)}đ",
+                    style: TextStyle(
+                      fontSize: 32, 
+                      fontWeight: FontWeight.bold,
+                      color: expense.splitType == 'settlement' ? Colors.green : Colors.red,
+                    ),
+                  ),
                 ],
               ),
             ),
-
-            const SizedBox(height: 24),
-
-            // 2. Ghi chú
-            const Text("Ghi chú", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            const Text(
-              "Mua đồ ăn ở siêu thị BigC. Bao gồm: Rau củ, thịt bò và vài món ăn vặt cho cả nhà.",
-              style: TextStyle(color: Colors.grey, height: 1.5),
-            ),
-
-            const SizedBox(height: 24),
-
-            // 3. Ảnh hóa đơn
-            const Text("Ảnh hóa đơn", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                _buildImagePreview("https://picsum.photos/200/300"), // Ảnh giả lập
-                const SizedBox(width: 12),
-                _buildImagePreview("https://picsum.photos/200/301"),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // 4. Chi tiết chia tiền
-            const Text("Chi tiết chi tiền", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
+            const SizedBox(height: 32),
             
-            // Danh sách người nợ
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                children: [
-                  _buildMemberDebtRow("Minh Tuấn", "Người trả", "292.000đ", Colors.green),
-                  const Divider(height: 1, indent: 16, endIndent: 16),
-                  _buildMemberDebtRow("Văn Dũng", "Đang nợ", "292.000đ", AppColors.debtRed),
-                  const Divider(height: 1, indent: 16, endIndent: 16),
-                  _buildMemberDebtRow("Bạn (Nam Phương)", "Người trả", "291.000đ", Colors.grey),
-                ],
-              ),
-            ),
-            const SizedBox(height: 40),
+            // Thông tin chi tiết
+            _buildDetailRow(Icons.category, "Danh mục", expense.category, textColor),
+            _buildDetailRow(Icons.calendar_today, "Thời gian", dateFormat.format(expense.date), textColor),
+            
+            _buildDetailRow(Icons.person, "Người trả tiền", _formatPayerId(expense.payerId), textColor), 
+            
+            Divider(height: 40, color: Colors.grey.shade300),
+            
+            Text("Chia sẻ với:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
+            const SizedBox(height: 10),
+            
+            // Danh sách người tham gia
+            ...expense.splitDetails.entries.map((entry) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Thành viên...${entry.key.substring(0, 4)}", style: TextStyle(color: textColor)), 
+                    Text("${currencyFormat.format(entry.value)}đ", style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
+                  ],
+                ),
+              );
+            }).toList(), 
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-      ],
-    );
-  }
-
-  Widget _buildImagePreview(String url) {
-    return Expanded(
-      child: AspectRatio(
-        aspectRatio: 1,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Image.network(url, fit: BoxFit.cover),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMemberDebtRow(String name, String status, String amount, Color statusColor) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: Colors.grey.shade200,
-            child: const Icon(Icons.person, color: Colors.grey),
+  void _showDeleteConfirmDialog(BuildContext context, ExpenseService service) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Xóa khoản chi?"),
+        content: const Text("Hành động này không thể hoàn tác."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Hủy", style: TextStyle(color: Colors.grey)),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                Text(status, style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold)),
-              ],
-            ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              await service.deleteExpense(expense.id);
+              Navigator.pop(context); // Đóng dialog
+              Navigator.pop(context); // Về trang danh sách
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Đã xóa khoản chi")),
+              );
+            },
+            child: const Text("Xóa", style: TextStyle(color: Colors.white)),
           ),
-          Text(amount, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
         ],
       ),
     );
+  }
+
+  // Hàm phụ trợ để hiển thị ID cho gọn (vì chưa load được tên thật từ ID)
+  String _formatPayerId(String id) {
+    if (id.isEmpty) return "Không rõ";
+    // Nếu ID quá dài, cắt bớt cho đẹp
+    if (id.length > 5) return "Thành viên (...${id.substring(0, 5)})";
+    return id;
+  }
+
+  Widget _buildDetailRow(IconData icon, String label, String value, Color textColor) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.grey, size: 20),
+          const SizedBox(width: 12),
+          Text(label, style: const TextStyle(color: Colors.grey)),
+          const Spacer(),
+          Text(value, style: TextStyle(fontWeight: FontWeight.w500, color: textColor)),
+        ],
+      ),
+    );
+  }
+
+  IconData _getIconForCategory(String category) {
+    String cat = category.toLowerCase();
+    if (cat.contains("thanh toán") || cat.contains("trả nợ")) return Icons.check_circle_outline;
+    if (cat.contains("điện")) return Icons.electric_bolt;
+    if (cat.contains("nước")) return Icons.water_drop;
+    if (cat.contains("net") || cat.contains("wifi")) return Icons.wifi;
+    if (cat.contains("chợ") || cat.contains("ăn")) return Icons.shopping_cart;
+    if (cat.contains("nhà")) return Icons.home;
+    return Icons.receipt_long;
   }
 }

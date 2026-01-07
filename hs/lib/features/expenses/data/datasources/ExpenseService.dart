@@ -71,6 +71,7 @@ class ExpenseService {
   // 4. THANH TOÁN NỢ (SETTLEMENT)
   // debtorId: Người nợ (Người trả tiền)
   // creditorId: Chủ nợ (Người nhận tiền)
+// ... (existing code)
   Future<void> settleDebt({
     required String debtorId,
     required String creditorId,
@@ -99,5 +100,27 @@ class ExpenseService {
         .doc(houseId)
         .collection('expenses')
         .add(settlement.toMap());
+  }
+
+  // 5. XÓA CHI TIÊU
+  Future<void> deleteExpense(String expenseId) async {
+    final houseId = await _getHouseId();
+    await _firestore
+        .collection('houses')
+        .doc(houseId)
+        .collection('expenses')
+        .doc(expenseId)
+        .delete();
+  }
+
+  // 6. CẬP NHẬT CHI TIÊU
+  Future<void> updateExpense(ExpenseModel expense) async {
+    final houseId = await _getHouseId();
+    await _firestore
+        .collection('houses')
+        .doc(houseId)
+        .collection('expenses')
+        .doc(expense.id)
+        .update(expense.toMap());
   }
 }

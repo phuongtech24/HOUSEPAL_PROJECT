@@ -33,7 +33,9 @@ class ProfileMenuOption extends StatelessWidget {
               child: Switch(
                 value: switchValue ?? false,
                 activeColor: AppColors.primary,
-                onChanged: (val) {}, // Xử lý callback sau
+                onChanged: (val) {
+                  if (onTap != null) onTap!();
+                },
               ),
             ),
           if (type == MenuType.dropdown)

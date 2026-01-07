@@ -7,6 +7,8 @@ enum HighlightType {
   receivable, // Chọn ô "Người khác nợ bạn"
 }
 
+// ... (imports remain the same)
+
 class BalanceCard extends StatelessWidget {
   final HighlightType highlightType; // Biến quyết định tô màu ô nào
   final String totalBalance;
@@ -35,10 +37,17 @@ class BalanceCard extends StatelessWidget {
         ? Border.all(color: Colors.blue, width: 2)
         : null;
 
+    final cardColor = Theme.of(context).cardTheme.color ?? Colors.white;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final debtBg = isDark ? const Color(0xFF3E2723) : const Color(0xFFFFF0F0);
+    final receiveBg = isDark ? const Color(0xFF1B5E20) : const Color(0xFFE0F9F4);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor, // [FIX] Dynamic background
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -55,9 +64,9 @@ class BalanceCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+               Text(
                 "Tổng cân đối của bạn",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor), // [FIX] Dynamic text
               ),
               GestureDetector(
                 onTap: () {
@@ -76,7 +85,7 @@ class BalanceCard extends StatelessWidget {
           // --- TỔNG TIỀN ---
           Text(
             totalBalance,
-            style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: textColor), // [FIX] Dynamic text
           ),
           const SizedBox(height: 20),
 
@@ -88,7 +97,7 @@ class BalanceCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF0F0), // Nền đỏ nhạt
+                    color: debtBg, // [FIX] Dynamic red tint
                     borderRadius: BorderRadius.circular(12),
                     border: debtBorder, // <--- Logic viền tự động ở đây
                   ),
@@ -116,7 +125,7 @@ class BalanceCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE0F9F4), // Nền xanh nhạt
+                    color: receiveBg, // [FIX] Dynamic green tint
                     borderRadius: BorderRadius.circular(12),
                     border: receivableBorder, // <--- Logic viền tự động ở đây
                   ),

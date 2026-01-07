@@ -7,7 +7,10 @@ import '../data/models/home_model.dart';
 import '../../chores/presentation/pages/chores_ranking_page.dart';
 
 
-const Color _greyText = Color(0xFF8B8E98);
+// ... (imports remain the same)
+
+// Remove constant colors that might clash
+// const Color _greyText = Color(0xFF8B8E98); // Use generic grey or theme caption
 const double _cardRadius = 16;
 
 class HomePage extends StatefulWidget {
@@ -44,33 +47,37 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // Determine if in dark mode for manual overrides if needed
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     if (_loading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+       return Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor, // [FIX] Dynamic background
       bottomNavigationBar: const HousePalBottomNav(currentIndex: 0),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
           children: [
-            _buildHeader(),
+            _buildHeader(context), // Pass context for theme access
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Tổng quan của bạn',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Theme.of(context).textTheme.bodyLarge?.color),
             ),
             const SizedBox(height: 12),
-            _buildSummaryCards(),
+            _buildSummaryCards(context),
             const SizedBox(height: 16),
-            _buildTodayChores(),
+            _buildTodayChores(context),
             const SizedBox(height: 16),
-            _buildFinanceOverview(),
+            _buildFinanceOverview(context),
             const SizedBox(height: 16),
-            _buildRecentNews(),
+            _buildRecentNews(context),
             const SizedBox(height: 20),
             _buildMonthlyStarButton(context),
           ],
@@ -81,34 +88,38 @@ class _HomePageState extends State<HomePage> {
 
   // ================= HEADER =================
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
+    // Dynamic text color
+    final titleColor = Theme.of(context).textTheme.bodyLarge?.color;
+    final subtitleColor = Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const CircleAvatar(
+        CircleAvatar(
           radius: 24,
-          backgroundColor: Colors.black12,
-          child: Icon(Icons.person, size: 28, color: Colors.black54),
+          backgroundColor: Theme.of(context).cardColor, // [FIX] Dynamic bg
+          child: Icon(Icons.person, size: 28, color: titleColor), // [FIX] Dynamic icon color
         ),
         const SizedBox(width: 12),
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Xin chào! 👋',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: titleColor),
               ),
-              SizedBox(height: 2),
+              const SizedBox(height: 2),
               Text(
                 'Chào mừng bạn đến với HousePal',
-                style: TextStyle(fontSize: 13, color: _greyText),
+                style: TextStyle(fontSize: 13, color: subtitleColor),
               ),
             ],
           ),
         ),
         IconButton(
-          icon: const Icon(Icons.notifications_none_outlined),
+          icon: Icon(Icons.notifications_none_outlined, color: titleColor),
           onPressed: () =>
               Navigator.pushNamed(context, '/notifications'),
         ),
@@ -118,11 +129,12 @@ class _HomePageState extends State<HomePage> {
 
   // ================= SUMMARY =================
 
-  Widget _buildSummaryCards() {
+  Widget _buildSummaryCards(BuildContext context) {
     return Row(
       children: [
         Expanded(
           child: _summaryCard(
+            context: context,
             icon: Icons.event_available_outlined,
             value: _summary!.todayChores.toString(),
             label: 'Việc hôm nay',
@@ -132,6 +144,7 @@ class _HomePageState extends State<HomePage> {
         const SizedBox(width: 12),
         Expanded(
           child: _summaryCard(
+            context: context,
             icon: Icons.star_border,
             value: _summary!.monthPoints.toString(),
             label: 'Điểm tháng này',
@@ -143,19 +156,25 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _summaryCard({
+    required BuildContext context,
     required IconData icon,
     required String value,
     required String label,
     required VoidCallback onTap,
   }) {
+    final cardColor = Theme.of(context).cardTheme.color ?? Colors.white;
+    final borderColor = Theme.of(context).dividerTheme.color ?? const Color(0xFFE3E5EA);
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color;
+    final subTextColor = Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
+
     return InkWell(
       borderRadius: BorderRadius.circular(_cardRadius),
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardColor, // [FIX] Dynamic background
           borderRadius: BorderRadius.circular(_cardRadius),
-          border: Border.all(color: const Color(0xFFE3E5EA)),
+          border: Border.all(color: borderColor),
         ),
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         child: Column(
@@ -165,13 +184,13 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 8),
             Text(
               value,
-              style: const TextStyle(
-                  fontSize: 22, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                  fontSize: 22, fontWeight: FontWeight.w700, color: textColor),
             ),
             const SizedBox(height: 4),
             Text(
               label,
-              style: const TextStyle(fontSize: 13, color: _greyText),
+              style: TextStyle(fontSize: 13, color: subTextColor),
             ),
           ],
         ),
@@ -181,24 +200,28 @@ class _HomePageState extends State<HomePage> {
 
   // ================= TODAY CHORES =================
 
-  Widget _buildTodayChores() {
+  Widget _buildTodayChores(BuildContext context) {
+    final cardColor = Theme.of(context).cardTheme.color ?? Colors.white;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionHeader(
+          context,
           'Việc của bạn hôm nay',
           onViewAll: () => Navigator.pushNamed(context, '/chores'),
         ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: cardColor, // [FIX] Dynamic
             borderRadius: BorderRadius.circular(_cardRadius),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Text(
             'Bạn có ${_summary!.todayChores} việc đang chờ',
-            style: const TextStyle(fontSize: 14),
+            style: TextStyle(fontSize: 14, color: textColor),
           ),
         ),
       ],
@@ -207,27 +230,32 @@ class _HomePageState extends State<HomePage> {
 
   // ================= FINANCE =================
 
-  Widget _buildFinanceOverview() {
+  Widget _buildFinanceOverview(BuildContext context) {
+    final cardColor = Theme.of(context).cardTheme.color ?? Colors.white;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionHeader(
+          context,
           'Tổng quan tài chính',
           onViewAll: () => Navigator.pushNamed(context, '/expenses'),
         ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: cardColor, // [FIX] Dynamic
             borderRadius: BorderRadius.circular(_cardRadius),
           ),
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
           child: Row(
             children: [
-              _financeCol('Bạn nợ', _summary!.debt, Colors.red),
-              Container(width: 1, height: 40, color: const Color(0xFFE3E5EA)),
+              _financeCol(context, 'Bạn nợ', _summary!.debt, Colors.red),
+              Container(width: 1, height: 40, color: Theme.of(context).dividerTheme.color ?? const Color(0xFFE3E5EA)),
               const SizedBox(width: 16),
               _financeCol(
+                context,
                 'Nợ bạn',
                 _summary!.credit,
                 AppColors.primary,
@@ -239,13 +267,13 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _financeCol(String label, int value, Color color) {
+  Widget _financeCol(BuildContext context, String label, int value, Color color) {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label,
-              style: const TextStyle(fontSize: 13, color: _greyText)),
+              style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey)),
           const SizedBox(height: 6),
           Text(
             NumberFormat.currency(locale: 'vi_VN', symbol: 'đ')
@@ -263,11 +291,12 @@ class _HomePageState extends State<HomePage> {
 
   // ================= ACTIVITY =================
 
-  Widget _buildRecentNews() {
+  Widget _buildRecentNews(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionHeader(
+          context,
           'Hoạt động gần đây',
           onViewAll: () =>
               Navigator.pushNamed(context, '/notifications'),
@@ -292,15 +321,15 @@ class _HomePageState extends State<HomePage> {
       height: 52,
       width: double.infinity,
       child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
+        style: Theme.of(context).elevatedButtonTheme.style?.copyWith(
+           shape: MaterialStateProperty.all(RoundedRectangleBorder(
+             borderRadius: BorderRadius.circular(18),
+           ))
+        ) ?? ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
-          ),
-          textStyle: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
           ),
         ),
         onPressed: () {
@@ -316,7 +345,7 @@ class _HomePageState extends State<HomePage> {
           children: [
             Icon(Icons.emoji_events_outlined, size: 20),
             SizedBox(width: 8),
-            Text('Người xuất sắc tháng này'),
+            Text('Người xuất sắc tháng này', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -324,12 +353,12 @@ class _HomePageState extends State<HomePage> {
   }
 
 
-  Widget _buildSectionHeader(String title, {VoidCallback? onViewAll}) {
+  Widget _buildSectionHeader(BuildContext context, String title, {VoidCallback? onViewAll}) {
     return Row(
       children: [
         Text(
           title,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Theme.of(context).textTheme.bodyLarge?.color),
         ),
         const Spacer(),
         if (onViewAll != null)
@@ -371,12 +400,17 @@ class _ActivityItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cardColor = Theme.of(context).cardTheme.color ?? Colors.white;
+    final borderColor = Theme.of(context).dividerTheme.color ?? const Color(0xFFE3E5EA);
+    final titleColor = Theme.of(context).textTheme.bodyLarge?.color;
+    // For RichText inside, we need explicit colors
+    
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE3E5EA)),
+        border: Border.all(color: borderColor),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -401,8 +435,7 @@ class _ActivityItem extends StatelessWidget {
               children: [
                 RichText(
                   text: TextSpan(
-                    style:
-                        const TextStyle(fontSize: 14, color: Colors.black),
+                    style: TextStyle(fontSize: 14, color: titleColor), // [FIX] Dynamic rich text color
                     children: [
                       TextSpan(
                         text: title,
@@ -417,8 +450,8 @@ class _ActivityItem extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     time,
-                    style: const TextStyle(
-                        fontSize: 12, color: _greyText),
+                    style: TextStyle(
+                        fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey),
                   ),
                 ],
               ],

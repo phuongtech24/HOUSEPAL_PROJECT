@@ -12,7 +12,6 @@ class BulletinService {
     final user = _auth.currentUser;
     if (user == null) throw Exception("Chưa đăng nhập");
     
-    // Lấy thông tin user để biết đang ở nhà nào
     final userDoc = await _firestore.collection('users').doc(user.uid).get();
     if (!userDoc.exists || userDoc['houseId'] == null || userDoc['houseId'] == '') {
       throw Exception("Bạn chưa tham gia nhà nào");
@@ -22,17 +21,16 @@ class BulletinService {
 
   // --- 1. GHI CHÚ (NOTES) ---
 
-  // Thêm Ghi chú
   Future<void> addNote(String title, String content, bool isPinned) async {
     final user = _auth.currentUser;
+    if (user == null) return;
+
     final houseId = await _getHouseId();
-    
-    // Lấy tên người dùng để hiển thị "Đăng bởi..."
-    final userDoc = await _firestore.collection('users').doc(user!.uid).get();
-    final userName = userDoc['name'];
+    final userDoc = await _firestore.collection('users').doc(user.uid).get();
+    final userName = userDoc['name'] ?? 'Thành viên'; // Thêm check null an toàn
 
     final note = BulletinNoteModel(
-      id: '', // Firestore tự sinh ID
+      id: '',
       title: title,
       content: content,
       authorName: userName,
@@ -41,7 +39,6 @@ class BulletinService {
       createdAt: DateTime.now(),
     );
 
-    // Lưu vào sub-collection 'notes' bên trong 'houses'
     await _firestore
         .collection('houses')
         .doc(houseId)
@@ -49,7 +46,6 @@ class BulletinService {
         .add(note.toMap());
   }
 
-  // Lấy danh sách Ghi chú (Realtime Stream)
   Stream<List<BulletinNoteModel>> getNotesStream() async* {
     try {
       final houseId = await _getHouseId();
@@ -57,8 +53,8 @@ class BulletinService {
           .collection('houses')
           .doc(houseId)
           .collection('notes')
-          .orderBy('isPinned', descending: true) // Ghim lên đầu
-          .orderBy('createdAt', descending: true) // Mới nhất lên đầu
+          .orderBy('isPinned', descending: true)
+          .orderBy('createdAt', descending: true)
           .snapshots()
           .map((snapshot) => snapshot.docs
               .map((doc) => BulletinNoteModel.fromSnapshot(doc))
@@ -70,19 +66,35 @@ class BulletinService {
 
   // --- 2. MUA SẮM (SHOPPING) ---
 
-  // Thêm vật phẩm
-  Future<void> addShoppingItem(String itemName, String note) async {
+  // CẬP NHẬT: Thêm tham số quantity, unit, isUrgent, imageUrl
+  Future<void> addShoppingItem(
+    String itemName, 
+    String note, 
+    double quantity, 
+    String unit, 
+    bool isUrgent, {
+    String? imageUrl, // Tham số tùy chọn (nếu có ảnh)
+  }) async {
     final user = _auth.currentUser;
-    final houseId = await _getHouseId();
-    final userDoc = await _firestore.collection('users').doc(user!.uid).get();
+    if (user == null) return;
 
+    final houseId = await _getHouseId();
+    final userDoc = await _firestore.collection('users').doc(user.uid).get();
+    final userName = userDoc.data()?['name'] ?? 'Thành viên';
+
+    // Tạo model với đầy đủ dữ liệu mới
     final item = ShoppingItemModel(
-      id: '',
+      id: '', // Firestore tự sinh
       itemName: itemName,
       note: note,
-      requestedBy: userDoc['name'],
+      requestedBy: userName,
       isBought: false,
       createdAt: DateTime.now(),
+      // Các trường mới thêm vào:
+      quantity: quantity,
+      unit: unit,
+      isUrgent: isUrgent,
+      imageUrl: imageUrl,
     );
 
     await _firestore
@@ -103,7 +115,6 @@ class BulletinService {
         .update({'isBought': !currentStatus});
   }
 
-  // Stream danh sách mua sắm
   Stream<List<ShoppingItemModel>> getShoppingStream() async* {
     try {
       final houseId = await _getHouseId();
@@ -111,13 +122,18 @@ class BulletinService {
           .collection('houses')
           .doc(houseId)
           .collection('shopping_items')
-          .orderBy('isBought', descending: false) // Chưa mua lên đầu
-          .orderBy('createdAt', descending: true)
+          // --- XÓA HOẶC COMMENT 3 DÒNG ORDERBY NÀY ĐI ---
+          // .orderBy('isBought', descending: false) 
+          // .orderBy('isUrgent', descending: true)  
+          // .orderBy('createdAt', descending: true) 
+          // -----------------------------------------------
           .snapshots()
           .map((snapshot) => snapshot.docs
               .map((doc) => ShoppingItemModel.fromSnapshot(doc))
               .toList());
     } catch (e) {
+      // In lỗi ra để dễ debug nếu có vấn đề khác
+      print("Lỗi getShoppingStream: $e"); 
       yield [];
     }
   }
