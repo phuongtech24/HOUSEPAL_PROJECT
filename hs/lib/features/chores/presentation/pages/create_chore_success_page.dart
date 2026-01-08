@@ -14,7 +14,7 @@ class CreateChoreSuccessPage extends StatelessWidget {
           children: [
             const Spacer(),
 
-            // SUCCESS ICON
+
             Container(
               width: 96,
               height: 96,
@@ -53,7 +53,7 @@ class CreateChoreSuccessPage extends StatelessWidget {
 
             const Spacer(),
 
-            // ===== BUTTON: VIEW CHORES =====
+
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: SizedBox(
@@ -84,7 +84,7 @@ class CreateChoreSuccessPage extends StatelessWidget {
 
             const SizedBox(height: 12),
 
-            // ===== BUTTON: CLOSE =====
+
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: SizedBox(

@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/home_model.dart';
+import '../../../chores/data/models/chore_model.dart';
+import '../../../authentication/data/models/user_model.dart';
 
 class HomeService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -14,6 +16,15 @@ class HomeService {
     final userDoc =
         await _firestore.collection('users').doc(uid).get();
     return userDoc['houseId'] as String;
+  }
+
+  // ===============================
+  // GET CURRENT USER
+  // ===============================
+  Future<UserModel> getCurrentUser() async {
+    final uid = _auth.currentUser!.uid;
+    final doc = await _firestore.collection('users').doc(uid).get();
+    return UserModel.fromMap(doc.data()!);
   }
 
   // ===============================
@@ -63,7 +74,9 @@ class HomeService {
     }
 
     return HomeSummaryModel(
-      todayChores: choresSnap.docs.length,
+      todayChores: choresSnap.docs
+          .map((e) => ChoreModel.fromSnapshot(e))
+          .toList(),
       monthPoints: (userDoc['currentPoints'] ?? 0) as int,
       debt: debt,
       credit: credit,

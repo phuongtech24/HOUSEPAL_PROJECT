@@ -9,6 +9,9 @@ class ChoreModel {
   final List<String> groupOrder; // list uid
   final String currentGroupId;
 
+  final String repeatType;
+  final DateTime startDate;
+
   ChoreModel({
     required this.id,
     required this.title,
@@ -17,6 +20,8 @@ class ChoreModel {
     required this.status,
     required this.groupOrder,
     required this.currentGroupId,
+    required this.repeatType,
+    required this.startDate,
   });
 
   factory ChoreModel.fromSnapshot(DocumentSnapshot doc) {
@@ -29,6 +34,10 @@ class ChoreModel {
       status: data['status'] ?? 'pending',
       groupOrder: List<String>.from(data['groupOrder'] ?? []),
       currentGroupId: data['currentGroupId'] ?? '',
+      repeatType: data['repeatType'] ?? 'none',
+      startDate: data['startDate'] != null
+          ? (data['startDate'] as Timestamp).toDate()
+          : DateTime.now(),
     );
   }
 }

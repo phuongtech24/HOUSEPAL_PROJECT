@@ -15,6 +15,7 @@ class _ChoresRankingPageState extends State<ChoresRankingPage> {
 
   List<UserModel> _ranking = [];
   bool _loading = true;
+  int _selectedMonthIndex = 0;
 
   @override
   void initState() {
@@ -25,7 +26,17 @@ class _ChoresRankingPageState extends State<ChoresRankingPage> {
   Future<void> _loadRanking() async {
     try {
       setState(() => _loading = true);
-      final result = await _service.getMonthlyRanking();
+      // Construct date based on selection
+      final now = DateTime.now();
+      final selectedDate = DateTime(now.year, now.month - _selectedMonthIndex);
+
+      
+      List<UserModel> result = [];
+      if (_selectedMonthIndex == 0) {
+         result = await _service.getMonthlyRanking();
+      } else {
+         result = []; 
+      }
 
       if (!mounted) return;
       setState(() {
@@ -42,161 +53,313 @@ class _ChoresRankingPageState extends State<ChoresRankingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF5F7FA), // Light grey bg
       appBar: AppBar(
-        title: const Text('Bảng xếp hạng tháng'),
+        title: const Text('Bảng xếp hạng', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black)),
         centerTitle: true,
+        elevation: 0,
+        backgroundColor: const Color(0xFFF5F7FA),
+        iconTheme: const IconThemeData(color: Colors.black),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _ranking.isEmpty
-              ? _buildEmpty()
-              : ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    _buildTopUser(_ranking.first),
-                    const SizedBox(height: 16),
-                    ..._ranking
-                        .skip(1)
-                        .toList()
-                        .asMap()
-                        .entries
-                        .map(
-                          (e) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _RankingItem(
-                              rank: e.key + 2,
-                              user: e.value,
-                            ),
-                          ),
-                        ),
-                  ],
-                ),
-    );
-  }
-
-  Widget _buildEmpty() {
-    return const Center(
-      child: Text(
-        'Chưa có dữ liệu xếp hạng',
-        style: TextStyle(color: Colors.grey),
-      ),
-    );
-  }
-
-  Widget _buildTopUser(UserModel user) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFFD54F), Color(0xFFFFF176)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Column(
+      body: Column(
         children: [
-          CircleAvatar(
-            radius: 42,
-            backgroundImage: user.avatarUrl.isNotEmpty
-                ? AssetImage(user.avatarUrl)
-                : const AssetImage('lib/core/assets/avatars/meo3.jpg'),
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Hạng 1',
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            user.name,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Thành viên tích cực của tháng',
-            style: TextStyle(fontSize: 13),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${user.currentPoints} điểm',
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: AppColors.primary,
-            ),
-          ),
+           // 1. Month Selector Headers (Always visible)
+           Padding(
+             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+             child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: List.generate(3, (index) {
+                  final now = DateTime.now();
+                  final date = DateTime(now.year, now.month - index);
+                  final label = 'Tháng ${date.month}/${date.year}';
+                  
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: InkWell(
+                      onTap: () {
+                        setState(() {
+                          _selectedMonthIndex = index;
+                        });
+                        _loadRanking();
+                      },
+                      borderRadius: BorderRadius.circular(20),
+                      child: _MonthChip(
+                        text: label,
+                        isSelected: _selectedMonthIndex == index,
+                      ),
+                    ),
+                  );
+                }),
+              ),
+                     ),
+           ),
+           
+           Expanded(
+             child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _ranking.isEmpty
+                    ? _buildEmpty()
+                    : SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 16),
+                            // 2. Featured Top 1 Card
+                            if (_ranking.isNotEmpty)
+                              _buildFeaturedTopCard(context, _ranking.first),
+      
+                            const SizedBox(height: 20),
+      
+                            // 3. Remaining List
+                            if (_ranking.length > 1)
+                              ..._ranking.skip(1).map((user) {
+                                 final index = _ranking.indexOf(user);
+                                 return Padding(
+                                   padding: const EdgeInsets.only(bottom: 12),
+                                   child: _RankingListItem(user: user, rank: index + 1),
+                                 );
+                              }),
+                              
+                            const SizedBox(height: 30),
+                          ],
+                        ),
+                      ),
+           ),
         ],
       ),
     );
   }
-}
 
-class _RankingItem extends StatelessWidget {
-  final int rank;
-  final UserModel user;
+  Widget _buildEmpty() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.history_toggle_off, size: 48, color: Colors.grey),
+          const SizedBox(height: 16),
+          Text(
+            _selectedMonthIndex == 0 
+                ? 'Chưa có phân hạng tháng này' 
+                : 'Chưa có dữ liệu lịch sử', 
+            style: const TextStyle(color: Colors.grey)
+          ),
+        ],
+      )
+    );
+  }
 
-  const _RankingItem({
-    required this.rank,
-    required this.user,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildFeaturedTopCard(BuildContext context, UserModel user) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE3E5EA)),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundImage: user.avatarUrl.isNotEmpty
-                ? AssetImage(user.avatarUrl)
-                : const AssetImage('lib/core/assets/avatars/meo3.jpg'),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  user.name,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
+        ],
+      ),
+      child: Column(
+        children: [
+          // Header Image / Gradient
+          Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.bottomCenter,
+            children: [
+              // 1. Background (Starry Night Theme)
+              Container(
+                height: 140,
+                decoration: const BoxDecoration(
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                  ),
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF4527A0), Color(0xFF7B1FA2)], // Deep Purple to Purple
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
                 ),
+                // Decorative Stars (Simulated with Icons for now, replace with Image in prod)
+                child: Stack(
+                  children: const [
+                     Positioned(top: 20, left: 30, child: Icon(Icons.star, color: Colors.white30, size: 16)),
+                     Positioned(top: 50, right: 40, child: Icon(Icons.star, color: Colors.white24, size: 24)),
+                     Positioned(bottom: 40, left: 80, child: Icon(Icons.star, color: Colors.white12, size: 12)),
+                     Positioned(top: 30, right: 100, child: Icon(Icons.star, color: Colors.white38, size: 20)),
+                  ],
+                ),
+              ),
+
+              // 2. Avatar (Overlapping)
+              Positioned(
+                bottom: -40,
+                child: Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: CircleAvatar(
+                        radius: 40,
+                        backgroundImage: user.avatarUrl.isNotEmpty
+                            ? AssetImage(user.avatarUrl)
+                            : const AssetImage('lib/core/assets/avatars/meo3.jpg'),
+                      ),
+                    ),
+                    // Rank Badge
+                    Container(
+                       padding: const EdgeInsets.all(6),
+                       decoration: const BoxDecoration(
+                         color: Color(0xFFFFD700), // Gold
+                         shape: BoxShape.circle,
+                       ),
+                       child: const Icon(Icons.emoji_events, color: Colors.white, size: 16),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 50), // Space for avatar
+
+          // Content
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Column(
+              children: [
+                const Text('Hạng 1', style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
                 const SizedBox(height: 4),
+                Text(
+                  '${user.name} (Bạn)', // Adding "(Bạn)" as per design, logic can clarify if it is indeed 'me' later
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Thành viên Tích cực của Tháng',
+                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                ),
+                const SizedBox(height: 16),
                 Text(
                   '${user.currentPoints} điểm',
                   style: const TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF00E676), // Bright Green
                   ),
                 ),
               ],
             ),
           ),
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F3F6),
-              borderRadius: BorderRadius.circular(12),
+        ],
+      ),
+    );
+  }
+}
+
+class _MonthChip extends StatelessWidget {
+  final String text;
+  final bool isSelected;
+
+  const _MonthChip({required this.text, required this.isSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: isSelected ? const Color(0xFFE0F2F1) : const Color(0xFFEEEEEE), // Light Green or Grey background
+        borderRadius: BorderRadius.circular(20),
+        border: isSelected ? Border.all(color: AppColors.primary, width: 1.5) : null,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            text,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: isSelected ? Colors.black : Colors.grey[600],
             ),
+          ),
+          if (isSelected) ...[
+            const SizedBox(width: 4),
+            const Icon(Icons.arrow_drop_down, color: Colors.black, size: 20),
+          ]
+        ],
+      ),
+    );
+  }
+}
+
+class _RankingListItem extends StatelessWidget {
+  final UserModel user;
+  final int rank;
+
+  const _RankingListItem({required this.user, required this.rank});
+
+  @override
+  Widget build(BuildContext context) {
+    // Rank styling: 2 (Silver), 3 (Bronze), others Grey
+    final rankColor = rank == 2 
+        ? const Color(0xFFC0C0C0) 
+        : rank == 3 
+            ? const Color(0xFFCD7F32) 
+            : const Color(0xFF757575);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          // Rank text
+          SizedBox(
+            width: 30,
             child: Text(
-              '#$rank',
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
+              '$rank',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: rankColor.withOpacity(0.5),
               ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(width: 12),
+          
+          CircleAvatar(
+             radius: 24,
+             backgroundImage: user.avatarUrl.isNotEmpty
+                ? AssetImage(user.avatarUrl)
+                : const AssetImage('lib/core/assets/avatars/meo3.jpg'),
+          ),
+          const SizedBox(width: 16),
+          
+          Expanded(
+            child: Text(
+              user.name,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ),
+          
+          Text(
+            '${user.currentPoints} điểm',
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
             ),
           ),
         ],
@@ -204,3 +367,5 @@ class _RankingItem extends StatelessWidget {
     );
   }
 }
+
+
