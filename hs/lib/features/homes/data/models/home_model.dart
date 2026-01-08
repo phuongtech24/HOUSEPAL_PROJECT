@@ -35,3 +35,5 @@ class HomeActivityModel {
 // Updated logic
 
 // Updated logic
+
+// Formatting fix
