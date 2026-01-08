@@ -636,3 +636,5 @@ class _StepButton extends StatelessWidget {
     );
   }
 }
+
+// Code cleanup
