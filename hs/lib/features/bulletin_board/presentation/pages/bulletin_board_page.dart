@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hs/core/widgets/housepal_bottom_nav.dart';
-import 'package:hs/features/bulletin_board/presentation/widgets/shopping_item.dart'; // Đảm bảo import đúng file vừa sửa
+import 'package:hs/features/bulletin_board/presentation/widgets/shopping_item.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../data/datasources/bulletin_service.dart';
 import '../../data/models/bulletin_note_model.dart';
@@ -8,6 +8,9 @@ import '../../data/models/shopping_item_model.dart';
 import '../widgets/bulletin_filter_bar.dart'; 
 import '../widgets/bulletin_note_card.dart';  
 import 'add_bulletin_page.dart';
+import 'shopping_detail_page.dart';
+
+// ... (imports remain the same)
 
 // ... (imports remain the same)
 
@@ -105,6 +108,14 @@ class _BulletinBoardPageState extends State<BulletinBoardPage> {
                           children: items.map((item) => ShoppingItemCard(
                             item: item,
                             onToggle: () => _service.toggleShoppingItem(item.id, item.isBought),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ShoppingDetailPage(item: item),
+                                ),
+                              );
+                            },
                           )).toList(),
                         );
                       },
