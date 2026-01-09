@@ -46,6 +46,31 @@ class BulletinService {
         .add(note.toMap());
   }
 
+  Future<void> updateNote(
+      String noteId, String title, String content, bool isPinned) async {
+    final houseId = await _getHouseId();
+    await _firestore
+        .collection('houses')
+        .doc(houseId)
+        .collection('notes')
+        .doc(noteId)
+        .update({
+      'title': title,
+      'content': content,
+      'isPinned': isPinned,
+    });
+  }
+
+  Future<void> deleteNote(String noteId) async {
+    final houseId = await _getHouseId();
+    await _firestore
+        .collection('houses')
+        .doc(houseId)
+        .collection('notes')
+        .doc(noteId)
+        .delete();
+  }
+
   Stream<List<BulletinNoteModel>> getNotesStream() async* {
     try {
       final houseId = await _getHouseId();
@@ -113,6 +138,41 @@ class BulletinService {
         .collection('shopping_items')
         .doc(itemId)
         .update({'isBought': !currentStatus});
+  }
+
+  Future<void> updateShoppingItem(
+    String itemId, 
+    String itemName, 
+    String note, 
+    double quantity, 
+    String unit, 
+    bool isUrgent, {
+    String? imageUrl,
+  }) async {
+    final houseId = await _getHouseId();
+    await _firestore
+        .collection('houses')
+        .doc(houseId)
+        .collection('shopping_items')
+        .doc(itemId)
+        .update({
+      'itemName': itemName,
+      'note': note,
+      'quantity': quantity,
+      'unit': unit,
+      'isUrgent': isUrgent,
+      if (imageUrl != null) 'imageUrl': imageUrl,
+    });
+  }
+
+  Future<void> deleteShoppingItem(String itemId) async {
+    final houseId = await _getHouseId();
+    await _firestore
+        .collection('houses')
+        .doc(houseId)
+        .collection('shopping_items')
+        .doc(itemId)
+        .delete();
   }
 
   Stream<List<ShoppingItemModel>> getShoppingStream() async* {
