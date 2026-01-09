@@ -15,6 +15,8 @@ import '../widgets/transaction_item.dart';
 // --- IMPORT TRANG CHI TIẾT ---
 import 'expense_detail_page.dart'; 
 
+// ... (imports remain the same)
+
 class ExpensesPage extends StatefulWidget {
   const ExpensesPage({super.key});
 
@@ -84,20 +86,25 @@ class _ExpensesPageState extends State<ExpensesPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Dynamic update
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+     final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: bgColor, // [FIX] Dynamic background
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: bgColor, // [FIX] Dynamic appBar
         elevation: 0,
         centerTitle: true,
-        title: const Text("Quỹ chung", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: Text("Quỹ chung", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
         automaticallyImplyLeading: false,
       ),
       body: StreamBuilder<List<ExpenseModel>>(
         stream: _service.getExpensesStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-          if (snapshot.hasError) return const Center(child: Text("Lỗi tải dữ liệu"));
+          if (snapshot.hasError) return Center(child: Text("Lỗi tải dữ liệu", style: TextStyle(color: textColor)));
 
           final expenses = snapshot.data ?? [];
           
@@ -122,12 +129,12 @@ class _ExpensesPageState extends State<ExpensesPage> {
                 ),
 
                 const SizedBox(height: 24),
-                const Text("Khoản chi tiêu gần đây", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                Text("Khoản chi tiêu gần đây", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor)),
                 const SizedBox(height: 12),
                 
                 // 2. DANH SÁCH GIAO DỊCH
                 expenses.isEmpty
-                ? const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("Chưa có giao dịch", style: TextStyle(color: Colors.grey))))
+                ? Center(child: Padding(padding: const EdgeInsets.all(20), child: Text("Chưa có giao dịch", style: TextStyle(color: Colors.grey))))
                 : ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -142,29 +149,29 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       String titleText = expense.title;
                       String payerText = "";
                       String amountText = "${currencyFormat.format(expense.amount)}đ";
-                      Color amountColor = Colors.black;
+                      Color amountColor = textColor; // Default to text color first
                       String statusText = "";
-                      Color statusBg = Colors.grey.shade100;
+                      Color statusBg = isDark ? const Color(0xFF2C2C2C) : Colors.grey.shade100;
                       Color statusTextCol = Colors.grey;
-                      Color iconBg = Colors.white;
+                      Color iconBg = isDark ? const Color(0xFF2C2C2C) : Colors.white;
 
                       if (isSettlement) {
                         // GIAO DỊCH TRẢ NỢ
                         titleText = "Thanh toán nợ";
-                        iconBg = const Color(0xFFE8F5E9); 
+                        iconBg = isDark ? const Color(0xFF1B5E20) : const Color(0xFFE8F5E9); 
                         if (isMePayer) {
                            payerText = "Bạn đã trả nợ ($dateStr)";
                            amountText = "-${currencyFormat.format(expense.amount)}đ";
                            amountColor = Colors.green;
                            statusText = "Đã thanh toán";
-                           statusBg = const Color(0xFFE8F5E9);
+                           statusBg = isDark ? const Color(0xFF1B5E20) : const Color(0xFFE8F5E9);
                            statusTextCol = Colors.green;
                         } else {
                            payerText = "Bạn đã nhận tiền ($dateStr)";
                            amountText = "+${currencyFormat.format(expense.amount)}đ";
                            amountColor = Colors.green;
                            statusText = "Đã nhận";
-                           statusBg = const Color(0xFFE8F5E9);
+                           statusBg = isDark ? const Color(0xFF1B5E20) : const Color(0xFFE8F5E9);
                            statusTextCol = Colors.green;
                         }
                       } else {
@@ -172,16 +179,16 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         if (isMePayer) {
                            payerText = "Bạn đã trả ($dateStr)";
                            statusText = "Đã trả trước";
-                           statusBg = const Color(0xFFE0F2FE);
+                           statusBg = isDark ? const Color(0xFF01579B) : const Color(0xFFE0F2FE);
                            statusTextCol = Colors.blue;
-                           iconBg = const Color(0xFFE3F2FD);
+                           iconBg = isDark ? const Color(0xFF0D47A1) : const Color(0xFFE3F2FD);
                         } else {
                            payerText = "Thành viên khác trả ($dateStr)";
                            amountColor = AppColors.debtRed;
                            statusText = "Bạn nợ";
-                           statusBg = const Color(0xFFFFF0F0);
+                           statusBg = isDark ? const Color(0xFFB71C1C) : const Color(0xFFFFF0F0);
                            statusTextCol = AppColors.debtRed;
-                           iconBg = const Color(0xFFFFF3E0);
+                           iconBg = isDark ? const Color(0xFF3E2723) : const Color(0xFFFFF3E0);
                         }
                       }
 

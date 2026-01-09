@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:hs/features/authentication/data/models/user_model.dart';
-
+import 'package:hs/features/chores/presentation/widgets/LeaderboardCard.dart';
 import '../../data/datasources/chore_service.dart';
 import '../../data/models/chore_model.dart';
 
-import '../widgets/chore_widgets.dart';
-import '../widgets/LeaderboardCard.dart';
+import '../widgets/chore_widgets.dart' hide LeaderboardCard;
 
 import 'create_chore_page.dart';
 import 'chores_ranking_page.dart';
 import 'chore_detail_page.dart';
 
 import '../../../../core/widgets/housepal_bottom_nav.dart';
+
+
+import '../../../../core/constants/app_colors.dart';
+
+
 
 class ChoresPage extends StatefulWidget {
   const ChoresPage({super.key});
@@ -26,24 +30,29 @@ class _ChoresPageState extends State<ChoresPage> {
 
   @override
   Widget build(BuildContext context) {
+
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
+    final cardColor = Theme.of(context).cardTheme.color ?? Colors.white;
+    final titleColor = Theme.of(context).textTheme.bodyLarge?.color;
+    
     return Scaffold(
-      backgroundColor: kBackground,
+      backgroundColor: bgColor,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: kBackground,
+        backgroundColor: bgColor,
         centerTitle: true,
-        title: const Text(
+        title: Text(
           'Lịch việc nhà',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: titleColor),
         ),
-        actions: const [
-          Icon(Icons.calendar_today_outlined),
+        actions: [
+          Icon(Icons.calendar_today_outlined, color: titleColor),
         ],
       ),
 
       body: Column(
         children: [
-          /// ================= LEADERBOARD (DATA THỰC – FIX HOÀN CHỈNH) =================
+          
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
             child: StreamBuilder<List<UserModel>>(
@@ -57,7 +66,7 @@ class _ChoresPageState extends State<ChoresPage> {
                   return const SizedBox(height: 120);
                 }
 
-                // ✅ CLONE LIST + SORT (KHÔNG ĐÈ SNAPSHOT)
+                
                 final List<UserModel> rankedUsers =
                     List<UserModel>.from(snapshot.data!)
                       ..sort(
@@ -66,7 +75,7 @@ class _ChoresPageState extends State<ChoresPage> {
                       );
 
                 return LeaderboardCard(
-                  users: rankedUsers.take(3).toList(), // ✅ HẾT LỖI take(3)
+                  users: rankedUsers.take(3).toList(), 
                   onTapViewAll: () {
                     Navigator.push(
                       context,
@@ -80,7 +89,7 @@ class _ChoresPageState extends State<ChoresPage> {
             ),
           ),
 
-          /// ================= FILTER (GIỮ NGUYÊN) =================
+          
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: SegmentedFilter(
@@ -94,70 +103,117 @@ class _ChoresPageState extends State<ChoresPage> {
 
           const SizedBox(height: 16),
 
-          /// ================= CHORES LIST (GIỮ NGUYÊN) =================
+          
           Expanded(
             child: StreamBuilder<List<ChoreModel>>(
               stream: _choreService.getChoresStream(),
               builder: (context, snapshot) {
-                if (snapshot.connectionState ==
-                    ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
                 }
 
                 if (snapshot.hasError) {
-                  return const Center(
+                  return Center(
                     child: Text(
-                      'Không thể tải việc nhà.\nVui lòng kiểm tra House / Firebase.',
-                      textAlign: TextAlign.center,
+                      'Không thể tải việc nhà.',
+                      style: TextStyle(color: titleColor),
                     ),
                   );
                 }
 
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Text(
-                      'Chưa có việc nhà nào.\nHãy tạo việc đầu tiên!',
-                      textAlign: TextAlign.center,
+                      'Chưa có việc nhà nào.',
+                      style: TextStyle(color: titleColor),
                     ),
                   );
                 }
 
-                final chores = snapshot.data!;
 
-                return ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 90),
-                  itemCount: chores.length,
-                  separatorBuilder: (_, __) =>
-                      const SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    final chore = chores[index];
-                    final bool done =
-                        chore.status == 'completed';
+                final allChores = snapshot.data!;
+                final now = DateTime.now();
+                
+                final filteredChores = allChores.where((chore) {
+                  final date = chore.startDate; 
+                  
+                   if (_selectedFilter == 0) {
+                    return date.year == now.year && date.month == now.month && date.day == now.day;
+                  } else if (_selectedFilter == 1) {
+                     final diff = date.difference(now).inDays;
+                     return diff.abs() <= 7;
+                  } else {
+                    return date.month == now.month && date.year == now.year;
+                  }
+                }).toList();
 
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                ChoreDetailPage(chore: chore),
+                 if (filteredChores.isEmpty) {
+                   return Center(
+                    child: Text(
+                      'Không có việc trong khoảng thời gian này.',
+                       style: TextStyle(color: titleColor),
+                    ),
+                  );
+                 }
+
+
+                filteredChores.sort((a, b) => a.startDate.compareTo(b.startDate));
+
+
+                final List<Widget> listItems = [];
+                DateTime? lastDate;
+
+                for (var chore in filteredChores) {
+                  final date = chore.startDate;
+                  final dateKey = DateTime(date.year, date.month, date.day);
+
+                  if (lastDate == null || lastDate != dateKey) {
+                    listItems.add(
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        child: Text(
+                          '${_getDayName(date.weekday)}, ${date.day}/${date.month}',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: titleColor,
                           ),
-                        );
-                      },
-                      child: _ChoreRow(
-                        chore: chore,
-                        done: done,
-                        onToggle: done
-                            ? null
-                            : () async {
-                                await _choreService
-                                    .completeChore(chore);
-                              },
+                        ),
                       ),
                     );
-                  },
+                  }
+
+                   listItems.add(
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ChoreDetailPage(chore: chore),
+                            ),
+                          );
+                        },
+                        child: _ChoreRow(
+                          chore: chore,
+                          done: chore.status == 'completed',
+                          onToggle: chore.status == 'completed'
+                              ? null
+                              : () async {
+                                  await _choreService.completeChore(chore);
+                                },
+                        ),
+                      ),
+                    ),
+                  );
+                }
+                
+
+                listItems.add(const SizedBox(height: 90));
+
+                return ListView(
+                  children: listItems,
                 );
               },
             ),
@@ -166,7 +222,7 @@ class _ChoresPageState extends State<ChoresPage> {
       ),
 
       floatingActionButton: FloatingActionButton(
-        backgroundColor: kPrimaryGreen,
+        backgroundColor: AppColors.primary,
         onPressed: () {
           Navigator.push(
             context,
@@ -175,16 +231,29 @@ class _ChoresPageState extends State<ChoresPage> {
             ),
           );
         },
-        child: const Icon(Icons.add, size: 30),
+        child: const Icon(Icons.add, size: 30, color: Colors.white),
       ),
 
       bottomNavigationBar:
           const HousePalBottomNav(currentIndex: 1),
     );
   }
+
+  String _getDayName(int weekday) {
+    switch (weekday) {
+      case 1: return 'Thứ Hai';
+      case 2: return 'Thứ Ba';
+      case 3: return 'Thứ Tư';
+      case 4: return 'Thứ Năm';
+      case 5: return 'Thứ Sáu';
+      case 6: return 'Thứ Bảy';
+      case 7: return 'Chủ Nhật';
+      default: return '';
+    }
+  }
 }
 
-/// ================= ROW (GIỮ NGUYÊN) =================
+
 
 class _ChoreRow extends StatelessWidget {
   const _ChoreRow({
@@ -199,10 +268,17 @@ class _ChoreRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cardColor = Theme.of(context).cardTheme.color ?? Colors.white;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+
+    final bgColor = done 
+        ? (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1B5E20) : const Color(0xFFEFF5F1)) 
+        : cardColor;
+    
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: done ? const Color(0xFFEFF5F1) : Colors.white,
+        color: bgColor,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -215,10 +291,10 @@ class _ChoreRow extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: done ? kPrimaryGreen : Colors.grey,
+                  color: done ? AppColors.primary : Colors.grey,
                   width: 2,
                 ),
-                color: done ? kPrimaryGreen : Colors.transparent,
+                color: done ? AppColors.primary : Colors.transparent,
               ),
               child: done
                   ? const Icon(Icons.check,
@@ -236,16 +312,17 @@ class _ChoreRow extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    decoration:
-                        done ? TextDecoration.lineThrough : null,
+                    color: textColor,
+                    decoration: done ? TextDecoration.lineThrough : null,
+                    decorationColor: textColor,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${chore.currentGroupId} • +${chore.points} điểm',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: kGreyText,
+                    color: Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey,
                   ),
                 ),
               ],

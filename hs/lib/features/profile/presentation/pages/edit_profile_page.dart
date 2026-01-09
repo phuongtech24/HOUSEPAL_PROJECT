@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/constants/app_colors.dart'; 
+import '../../../../core/constants/app_colors.dart'; // Đảm bảo import đúng file màu của bạn
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class EditProfilePage extends StatefulWidget {
   // Bạn có thể truyền dữ liệu user hiện tại vào đây để hiển thị sẵn
@@ -96,11 +98,36 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              // TODO: Xử lý lưu dữ liệu lên Firebase tại đây
-              Navigator.pop(context);
+            onPressed: () async {
+              try {
+                final user = FirebaseAuth.instance.currentUser;
+                if (user == null) return;
+
+                // Show loading or just wait
+                // For simplicity, we just await
+                await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+                   'name': _nameController.text.trim(),
+                   'bio': _bioController.text.trim(),
+                   'phoneNumber': _phoneController.text.trim(),
+                   'dob': _dobController.text.trim(),
+                   'gender': _selectedGender,
+                });
+
+                if (context.mounted) {
+                   ScaffoldMessenger.of(context).showSnackBar(
+                     const SnackBar(content: Text("Cập nhật thành công!")),
+                   );
+                   Navigator.pop(context, true); // Return true to indicate update
+                }
+              } catch (e) {
+                 if (context.mounted) {
+                   ScaffoldMessenger.of(context).showSnackBar(
+                     SnackBar(content: Text("Lỗi: $e")),
+                   );
+                 }
+              }
             },
-            child: Text("Lưu", style: TextStyle(color: AppColors.primary, fontSize: 16, fontWeight: FontWeight.bold)),
+            child: const Text("Lưu", style: TextStyle(color: AppColors.primary, fontSize: 16, fontWeight: FontWeight.bold)),
           )
         ],
       ),

@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:hs/main.dart'; // Import main to access AppSettingsNotifier
 import 'package:hs/core/widgets/housepal_bottom_nav.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../widgets/profile_header.dart';
@@ -13,11 +15,34 @@ import '../../../house_setup/presentation/pages/manage_house_page.dart';
 import 'package:hs/features/expenses/data/datasources/ExpenseService.dart';
 import 'package:hs/features/expenses/data/models/expense_model.dart';
 
-// --- [MỚI] IMPORT TRANG CHỈNH SỬA HỒ SƠ
+// --- [MỚI] IMPORT TRANG CHỈNH SỬA HỒ SƠ ---
 import 'edit_profile_page.dart'; 
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  late Future<Map<String, dynamic>> _userFuture;
+  
+  // State cho cài đặt
+  bool _notifyChore = true;
+  bool _notifyExpense = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _userFuture = _getUserData();
+  }
+
+  Future<void> _refreshData() async {
+    setState(() {
+      _userFuture = _getUserData();
+    });
+  }
 
   Future<Map<String, dynamic>> _getUserData() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -151,17 +176,21 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // [FIX] Lấy settings từ Provider
+    final settings = Provider.of<AppSettingsNotifier>(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text("Hồ sơ", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFFF5F7FA),
+        title: Text("Hồ sơ", style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontWeight: FontWeight.bold)),
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         elevation: 0,
         centerTitle: true,
         automaticallyImplyLeading: false,
       ),
       body: FutureBuilder<Map<String, dynamic>>(
-        future: _getUserData(),
+        future: _userFuture,
         builder: (context, snapshot) {
           if (snapshot.hasError) {
              return Center(child: Text("Lỗi: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
@@ -199,23 +228,22 @@ class ProfilePage extends StatelessWidget {
                   height: 36,
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      // [MỚI] SỰ KIỆN CHUYỂN TRANG
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => EditProfilePage(
                             currentName: data['name'],
                             currentEmail: data['email'],
-                            currentPhone: data['phoneNumber'], // Lấy từ field phoneNumber trong Firestore
-                            currentBio: data['bio'],           // Lấy từ field bio
-                            currentDob: data['dob'],           // Lấy từ field dob
-                            currentGender: data['gender'],     // Lấy từ field gender
+                            currentPhone: data['phoneNumber'],
+                            currentBio: data['bio'],
+                            currentDob: data['dob'],
+                            currentGender: data['gender'],
                           ),
                         ),
-                      ).then((_) {
-                        // (Tùy chọn) Reload lại trang nếu cần sau khi quay về
-                        // setState không dùng được ở đây vì là StatelessWidget
-                        // Nếu cần reload, hãy chuyển ProfilePage thành StatefulWidget
+                      ).then((updated) {
+                         if (updated == true) {
+                           _refreshData();
+                         }
                       });
                     },
                     icon: const Icon(Icons.edit, size: 14, color: AppColors.primary),
@@ -223,7 +251,6 @@ class ProfilePage extends StatelessWidget {
                     style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE0F9F4), elevation: 0),
                   ),
                 ),
-                // ----------------------------------
 
                 const SizedBox(height: 24),
 
@@ -245,7 +272,7 @@ class ProfilePage extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: Colors.grey.shade200),
                         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8)],
@@ -278,7 +305,7 @@ class ProfilePage extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: Colors.grey.shade200),
                     ),
@@ -330,19 +357,43 @@ class ProfilePage extends StatelessWidget {
 
                 Container(
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200)),
-                  child: const Column(
+                  decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200)),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Cài đặt", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                      SizedBox(height: 8),
-                      ProfileMenuOption(title: "Thông báo việc nhà", type: MenuType.switchType, switchValue: true),
-                      Divider(height: 1),
-                      ProfileMenuOption(title: "Thông báo chi tiêu", type: MenuType.switchType, switchValue: true),
-                      Divider(height: 1),
-                      ProfileMenuOption(title: "Ngôn ngữ", type: MenuType.dropdown, dropdownValue: "Tiếng Việt"),
-                      Divider(height: 1),
-                      ProfileMenuOption(title: "Giao diện", type: MenuType.dropdown, dropdownValue: "Hệ thống"),
+                      const Text("Cài đặt", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      const SizedBox(height: 8),
+                      ProfileMenuOption(
+                        title: "Thông báo việc nhà", 
+                        type: MenuType.switchType, 
+                        switchValue: _notifyChore,
+                        onTap: () => setState(() => _notifyChore = !_notifyChore),
+                      ),
+                      const Divider(height: 1),
+                      ProfileMenuOption(
+                        title: "Thông báo chi tiêu", 
+                        type: MenuType.switchType, 
+                        switchValue: _notifyExpense,
+                        onTap: () => setState(() => _notifyExpense = !_notifyExpense),
+                      ),
+                      const Divider(height: 1),
+                      InkWell(
+                        onTap: () => _showLanguageDialog(context, settings),
+                        child: ProfileMenuOption(
+                          title: settings.language == "Tiếng Việt" ? "Ngôn ngữ" : "Language", 
+                          type: MenuType.dropdown, 
+                          dropdownValue: settings.language
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      InkWell(
+                        onTap: () => _showThemeDialog(context, settings),
+                        child: ProfileMenuOption(
+                          title: settings.language == "Tiếng Việt" ? "Giao diện" : "Theme", 
+                          type: MenuType.dropdown, 
+                          dropdownValue: _getThemeName(settings.themeMode),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -350,7 +401,7 @@ class ProfilePage extends StatelessWidget {
 
                  Container(
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200)),
+                  decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200)),
                   child: Column(
                     children: [
                       SizedBox(
@@ -412,6 +463,54 @@ class ProfilePage extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  // Helper cho theme name
+  String _getThemeName(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.light: return "Sáng";
+      case ThemeMode.dark: return "Tối"; 
+      default: return "Hệ thống";
+    }
+  }
+
+  void _showLanguageDialog(BuildContext context, AppSettingsNotifier settings) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(padding: EdgeInsets.all(16), child: Text("Chọn ngôn ngữ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18))),
+            ListTile(title: const Text("Tiếng Việt"), onTap: () { settings.setLanguage("Tiếng Việt"); Navigator.pop(context); }),
+            ListTile(title: const Text("English"), onTap: () { settings.setLanguage("English"); Navigator.pop(context); }),
+          ],
+        );
+      }
+    );
+  }
+
+  void _showThemeDialog(BuildContext context, AppSettingsNotifier settings) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(padding: EdgeInsets.all(16), child: Text("Chọn giao diện", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18))),
+            ListTile(title: const Text("Hệ thống"), onTap: () { settings.setTheme("Hệ thống"); Navigator.pop(context); }),
+            ListTile(title: const Text("Sáng"), onTap: () { settings.setTheme("Sáng"); Navigator.pop(context); }),
+            ListTile(title: const Text("Tối"), onTap: () { settings.setTheme("Tối"); Navigator.pop(context); }),
+          ],
+        );
+      }
     );
   }
 }

@@ -6,7 +6,7 @@ const Color kCardBackground = Colors.white;
 const Color kGreyText = Color(0xFF8E8E93);
 const BorderRadius kCardRadius = BorderRadius.all(Radius.circular(16));
 
-/// ================= SEGMENTED FILTER =================
+// ... (imports remain the same) 
 
 class SegmentedFilter extends StatelessWidget {
   const SegmentedFilter({
@@ -22,10 +22,14 @@ class SegmentedFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final activeBg = Theme.of(context).cardTheme.color ?? kCardBackground;
+    final inactiveBg = Theme.of(context).brightness == Brightness.dark ? Colors.grey[800] : const Color(0xFFE7F1E9);
+    final activeText = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+
     return Container(
       height: 40,
       decoration: BoxDecoration(
-        color: const Color(0xFFE7F1E9),
+        color: inactiveBg, // [FIX] Dynamic background
         borderRadius: BorderRadius.circular(20),
       ),
       padding: const EdgeInsets.all(4),
@@ -39,7 +43,7 @@ class SegmentedFilter extends StatelessWidget {
                 duration: const Duration(milliseconds: 180),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: active ? kCardBackground : Colors.transparent,
+                  color: active ? activeBg : Colors.transparent, // [FIX] Dynamic active bg
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
@@ -47,7 +51,7 @@ class SegmentedFilter extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: active ? Colors.black : kGreyText,
+                    color: active ? activeText : kGreyText, // [FIX] Dynamic text
                   ),
                 ),
               ),
@@ -59,7 +63,171 @@ class SegmentedFilter extends StatelessWidget {
   }
 }
 
-/// ================= CHORE LIST ITEM =================
+class LeaderboardCard extends StatelessWidget {
+  const LeaderboardCard({super.key, required this.onTapViewAll});
+
+  final VoidCallback onTapViewAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final cardColor = Theme.of(context).cardTheme.color ?? kCardBackground;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor, // [FIX] Dynamic
+        borderRadius: kCardRadius,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Bảng xếp hạng',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: textColor), // [FIX] Dynamic
+                ),
+              ),
+              GestureDetector(
+                onTap: onTapViewAll,
+                child: Row(
+                  children: const [
+                    Text(
+                      'Xem tất cả',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: kPrimaryGreen,
+                      ),
+                    ),
+                    SizedBox(width: 4),
+                    Icon(Icons.chevron_right, size: 18, color: kPrimaryGreen),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: const [
+              _LeaderboardItem(
+                name: 'Nam Phương',
+                points: 120,
+                rank: 2,
+                avatarColor: Colors.grey,
+              ),
+              _LeaderboardItem(
+                name: 'Văn Dũng',
+                points: 180,
+                rank: 1,
+                avatarColor: kPrimaryGreen,
+                highlight: true,
+              ),
+              _LeaderboardItem(
+                name: 'Minh Tuấn',
+                points: 95,
+                rank: 3,
+                avatarColor: Colors.brown,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LeaderboardItem extends StatelessWidget {
+  const _LeaderboardItem({
+    required this.name,
+    required this.points,
+    required this.rank,
+    required this.avatarColor,
+    this.highlight = false,
+  });
+
+  final String name;
+  final int points;
+  final int rank;
+  final Color avatarColor;
+  final bool highlight;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color badgeColor = highlight
+        ? kPrimaryGreen
+        : const Color(0xFFDDDDDD);
+
+    return Column(
+      children: [
+        Stack(
+          alignment: Alignment.bottomCenter,
+          children: [
+            CircleAvatar(
+              radius: 22,
+              backgroundColor: avatarColor,
+              backgroundImage: const AssetImage(
+                'lib/core/assets/avatars/meo3.jpg', // thay bằng ảnh thật
+              ),
+              onBackgroundImageError: (_, __) {},
+            ),
+            Positioned(
+              bottom: -2,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: badgeColor,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '$rank',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          name,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: highlight
+                ? const Color(0xFFE5F8ED)
+                : const Color(0xFFF1F3F6),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            '$points',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: highlight ? kPrimaryGreen : Colors.black,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 class ChoreListItem extends StatelessWidget {
   const ChoreListItem({

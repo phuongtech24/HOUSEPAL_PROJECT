@@ -1,13 +1,17 @@
 import 'dart:io'; 
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart'; // Cần import package này
-import 'package:hs/core/widgets/housepal_bottom_nav.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../data/models/bulletin_note_model.dart';
+import '../../data/models/shopping_item_model.dart';
 import '../../data/datasources/bulletin_service.dart';
 import 'success_page.dart';
 
 class AddBulletinPage extends StatefulWidget {
-  const AddBulletinPage({super.key});
+  final BulletinNoteModel? note; // Tham số optional để biết là đang Edit Note
+  final ShoppingItemModel? shoppingItem; // Tham số optional để biết là đang Edit Shopping
+
+  const AddBulletinPage({super.key, this.note, this.shoppingItem});
 
   @override
   State<AddBulletinPage> createState() => _AddBulletinPageState();
@@ -17,7 +21,7 @@ class _AddBulletinPageState extends State<AddBulletinPage> with SingleTickerProv
   late TabController _tabController;
   final BulletinService _service = BulletinService();
   
-  // --- Controllers Ghi chú ---//
+  // --- Controllers Ghi chú ---
   final _titleController = TextEditingController();
   final _contentController = TextEditingController(); 
   bool _isPinned = false;
@@ -39,6 +43,25 @@ class _AddBulletinPageState extends State<AddBulletinPage> with SingleTickerProv
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    
+    // Nếu có note truyền vào => Đang ở chế độ Edit Note
+    if (widget.note != null) {
+      _titleController.text = widget.note!.title;
+      _contentController.text = widget.note!.content;
+      _isPinned = widget.note!.isPinned;
+      // Tab mặc định 0 (Ghi chú)
+    }
+
+    // Nếu có shoppingItem truyền vào => Đang ở chế độ Edit Shopping
+    if (widget.shoppingItem != null) {
+       _tabController.index = 1; // Chuyển sang tab Mua sắm
+       _itemNameController.text = widget.shoppingItem!.itemName;
+       _itemNoteController.text = widget.shoppingItem!.note;
+       _quantity = widget.shoppingItem!.quantity;
+       _selectedUnit = widget.shoppingItem!.unit;
+       _isUrgent = widget.shoppingItem!.isUrgent;
+       // _selectedImage ... xử lý ảnh nếu có
+    }
     
     // Lắng nghe để cập nhật lại UI khi chuyển tab
     _tabController.addListener(() {
@@ -66,24 +89,51 @@ class _AddBulletinPageState extends State<AddBulletinPage> with SingleTickerProv
 
       if (isNote) {
         // Xử lý lưu Ghi chú
-        await _service.addNote(
-          _titleController.text.trim(),
-          _contentController.text.trim(),
-          _isPinned,
-        );
-        successMsg = "Ghi chú mới của bạn đã được thêm vào Bảng tin chung.";
+        if (widget.note != null) {
+          // UPDATE
+          await _service.updateNote(
+            widget.note!.id,
+            _titleController.text.trim(),
+            _contentController.text.trim(),
+            _isPinned,
+          );
+          successMsg = "Ghi chú đã được cập nhật thành công!";
+        } else {
+          // CREATE NEW
+          await _service.addNote(
+            _titleController.text.trim(),
+            _contentController.text.trim(),
+            _isPinned,
+          );
+          successMsg = "Ghi chú mới của bạn đã được thêm vào Bảng tin chung.";
+        }
         subMsg = _titleController.text;
       } else {
         // Xử lý lưu Mua sắm (Đã cập nhật đủ tham số)
-        await _service.addShoppingItem(
-          _itemNameController.text.trim(), // 1. Tên
-          _itemNoteController.text.trim(), // 2. Ghi chú
-          _quantity,                       // 3. Số lượng
-          _selectedUnit,                   // 4. Đơn vị
-          _isUrgent,                       // 5. Gấp hay không
-          // imageUrl: ... (Nếu sau này bạn làm upload ảnh thì truyền link vào đây)
-        );
-        successMsg = "Vật phẩm cần mua sắm mới của bạn đã được thêm vào Bảng tin chung.";
+        if (widget.shoppingItem != null) {
+          // UPDATE
+          await _service.updateShoppingItem(
+            widget.shoppingItem!.id,
+            _itemNameController.text.trim(),
+            _itemNoteController.text.trim(),
+            _quantity,
+            _selectedUnit,
+            _isUrgent,
+            // imageUrl: ...
+          );
+          successMsg = "Vật phẩm đã được cập nhật thành công!";
+        } else {
+          // CREATE NEW
+          await _service.addShoppingItem(
+            _itemNameController.text.trim(), // 1. Tên
+            _itemNoteController.text.trim(), // 2. Ghi chú
+            _quantity,                       // 3. Số lượng
+            _selectedUnit,                   // 4. Đơn vị
+            _isUrgent,                       // 5. Gấp hay không
+            // imageUrl: ... (Nếu sau này bạn làm upload ảnh thì truyền link vào đây)
+          );
+          successMsg = "Vật phẩm cần mua sắm mới của bạn đã được thêm vào Bảng tin chung.";
+        }
         subMsg = _itemNameController.text;
       }
 
@@ -117,33 +167,37 @@ class _AddBulletinPageState extends State<AddBulletinPage> with SingleTickerProv
           icon: const Icon(Icons.close, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text("Thêm mới", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: Text(
+          (widget.note != null || widget.shoppingItem != null) ? "Chỉnh sửa" : "Thêm mới", 
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)
+        ),
         centerTitle: true,
       ),
       body: Column(
         children: [
-          // Tab Switcher
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF2F4F5),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: TabBar(
-              controller: _tabController,
-              padding: const EdgeInsets.all(4),
-              indicator: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 2)],
+          // Tab Switcher (Ẩn nếu đang Edit để tránh lẫn lộn)
+          if (widget.note == null && widget.shoppingItem == null)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF2F4F5),
+                borderRadius: BorderRadius.circular(12),
               ),
-              labelColor: Colors.black,
-              labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-              unselectedLabelColor: Colors.grey,
-              dividerColor: Colors.transparent,
-              tabs: const [Tab(text: "Ghi chú"), Tab(text: "Mua sắm")],
+              child: TabBar(
+                controller: _tabController,
+                padding: const EdgeInsets.all(4),
+                indicator: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 2)],
+                ),
+                labelColor: Colors.black,
+                labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+                unselectedLabelColor: Colors.grey,
+                dividerColor: Colors.transparent,
+                tabs: const [Tab(text: "Ghi chú"), Tab(text: "Mua sắm")],
+              ),
             ),
-          ),
 
           Expanded(
             child: TabBarView(
@@ -173,7 +227,9 @@ class _AddBulletinPageState extends State<AddBulletinPage> with SingleTickerProv
                 ),
                 child: _isLoading 
                   ? const CircularProgressIndicator(color: Colors.white)
-                  : Text(_tabController.index == 0 ? "Lưu ghi chú" : "Thêm vật phẩm", 
+                  : Text(_tabController.index == 0 
+                      ? (widget.note != null ? "Cập nhật" : "Lưu ghi chú") 
+                      : (widget.shoppingItem != null ? "Cập nhật" : "Thêm vật phẩm"), 
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
               ),
             ),

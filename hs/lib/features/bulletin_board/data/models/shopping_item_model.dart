@@ -9,10 +9,10 @@ class ShoppingItemModel {
   final DateTime createdAt;
   
   // --- CÁC TRƯỜNG MỚI ---
-  final double quantity; 
-  final String unit;     
-  final bool isUrgent;   
-  final String? imageUrl; 
+  final double quantity; // Số lượng
+  final String unit;     // Đơn vị (Cái, Kg, Hộp...)
+  final bool isUrgent;   // Gấp
+  final String? imageUrl; // Link ảnh (nếu có)
 
   ShoppingItemModel({
     required this.id,

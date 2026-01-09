@@ -1,30 +1,59 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../data/models/expense_model.dart'; 
+import '../../data/models/expense_model.dart';
+import '../../data/datasources/ExpenseService.dart';
+import 'edit_expense_page.dart';
 
 class ExpenseDetailPage extends StatelessWidget {
   // 1. Khai báo biến nhận dữ liệu
   final ExpenseModel expense;
 
-  // 2. SỬA LỖI CONSTRUCTOR TẠI ĐÂY: Thêm required this.expense
   const ExpenseDetailPage({super.key, required this.expense});
 
   @override
   Widget build(BuildContext context) {
     final currencyFormat = NumberFormat("#,##0", "vi_VN");
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
+    final ExpenseService _service = ExpenseService();
+
+    // Dynamic Colors
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
+    final cardColor = Theme.of(context).cardTheme.color ?? Colors.white;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        title: const Text("Chi tiết giao dịch", style: TextStyle(color: Colors.black)),
-        backgroundColor: Colors.white,
+        title: Text("Chi tiết giao dịch", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+        backgroundColor: bgColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: textColor),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          // Nút Sửa
+          IconButton(
+            icon: const Icon(Icons.edit, color: Colors.blue),
+            onPressed: () {
+               Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EditExpensePage(expense: expense),
+                ),
+              );
+            },
+          ),
+          // Nút Xóa
+          IconButton(
+            icon: const Icon(Icons.delete, color: Colors.red),
+            onPressed: () {
+              _showDeleteConfirmDialog(context, _service);
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -38,7 +67,7 @@ class ExpenseDetailPage extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
+                      color: isDark ? Colors.grey[800] : AppColors.primary.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -50,7 +79,7 @@ class ExpenseDetailPage extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text(
                     expense.title,
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textColor),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -67,16 +96,14 @@ class ExpenseDetailPage extends StatelessWidget {
             const SizedBox(height: 32),
             
             // Thông tin chi tiết
-            _buildDetailRow(Icons.category, "Danh mục", expense.category),
-            _buildDetailRow(Icons.calendar_today, "Thời gian", dateFormat.format(expense.date)),
+            _buildDetailRow(Icons.category, "Danh mục", expense.category, textColor),
+            _buildDetailRow(Icons.calendar_today, "Thời gian", dateFormat.format(expense.date), textColor),
             
-            // 3. SỬA LỖI PAYERNAME TẠI ĐÂY:
-            // Thay expense.payerName bằng expense.payerId (hoặc xử lý logic hiển thị tên sau)
-            _buildDetailRow(Icons.person, "Người trả tiền", _formatPayerId(expense.payerId)), 
+            _buildDetailRow(Icons.person, "Người trả tiền", _formatPayerId(expense.payerId), textColor), 
             
-            const Divider(height: 40),
+            Divider(height: 40, color: Colors.grey.shade300),
             
-            const Text("Chia sẻ với:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Text("Chia sẻ với:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor)),
             const SizedBox(height: 10),
             
             // Danh sách người tham gia
@@ -86,15 +113,42 @@ class ExpenseDetailPage extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Hiển thị ID người nợ (bạn có thể thay bằng logic lấy tên thật sau)
-                    Text("Thành viên...${entry.key.substring(0, 4)}"), 
-                    Text("${currencyFormat.format(entry.value)}đ", style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text("Thành viên...${entry.key.substring(0, 4)}", style: TextStyle(color: textColor)), 
+                    Text("${currencyFormat.format(entry.value)}đ", style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
                   ],
                 ),
               );
-            }).toList(), // Xóa .toList() nếu Dart version mới, nhưng để an toàn cứ giữ
+            }).toList(), 
           ],
         ),
+      ),
+    );
+  }
+
+  void _showDeleteConfirmDialog(BuildContext context, ExpenseService service) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Xóa khoản chi?"),
+        content: const Text("Hành động này không thể hoàn tác."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Hủy", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              await service.deleteExpense(expense.id);
+              Navigator.pop(context); // Đóng dialog
+              Navigator.pop(context); // Về trang danh sách
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Đã xóa khoản chi")),
+              );
+            },
+            child: const Text("Xóa", style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
@@ -107,7 +161,7 @@ class ExpenseDetailPage extends StatelessWidget {
     return id;
   }
 
-  Widget _buildDetailRow(IconData icon, String label, String value) {
+  Widget _buildDetailRow(IconData icon, String label, String value, Color textColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
@@ -116,7 +170,7 @@ class ExpenseDetailPage extends StatelessWidget {
           const SizedBox(width: 12),
           Text(label, style: const TextStyle(color: Colors.grey)),
           const Spacer(),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Text(value, style: TextStyle(fontWeight: FontWeight.w500, color: textColor)),
         ],
       ),
     );

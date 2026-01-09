@@ -1,5 +1,7 @@
+import '../../../chores/data/models/chore_model.dart';
+
 class HomeSummaryModel {
-  final int todayChores;
+  final List<ChoreModel> todayChores;
   final int monthPoints;
   final int debt;
   final int credit;
