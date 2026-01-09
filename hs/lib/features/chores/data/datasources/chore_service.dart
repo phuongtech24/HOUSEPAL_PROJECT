@@ -75,6 +75,8 @@ class ChoreService {
  
   // CREATE CHORE
  
+  // CREATE CHORE
+ 
   Future<void> createChore({
     required String title,
     required String description,
@@ -100,6 +102,56 @@ class ChoreService {
           'createdAt': Timestamp.now(),
           'startDate': Timestamp.fromDate(startDate),
         });
+  }
+
+  // EDIT CHORE
+  Future<void> updateChore({
+    required String choreId,
+    required String title,
+    required String description,
+    required String repeatType,
+    required int points,
+    required List<String> groupOrder,
+    required DateTime startDate,
+    String? currentGroupId, // Optional: Update current assignee if needed
+  }) async {
+    final houseId = await _getHouseId();
+
+    final data = <String, dynamic>{
+      'title': title,
+      'description': description,
+      'points': points,
+      'groupOrder': groupOrder,
+      'repeatType': repeatType,
+      'startDate': Timestamp.fromDate(startDate),
+    };
+    
+    // reset status if it was completed? 
+    // Logic decision: If editing, usually we keep status unless explicitly reset. 
+    // However, if assignee changes, we might want to ensure it's pending.
+    // For now, let's simpler update.
+    
+    if (currentGroupId != null) {
+      data['currentGroupId'] = currentGroupId;
+    }
+
+    await _firestore
+        .collection('houses')
+        .doc(houseId)
+        .collection('chores')
+        .doc(choreId)
+        .update(data);
+  }
+
+  // DELETE CHORE
+  Future<void> deleteChore(String choreId) async {
+    final houseId = await _getHouseId();
+    await _firestore
+        .collection('houses')
+        .doc(houseId)
+        .collection('chores')
+        .doc(choreId)
+        .delete();
   }
 
 

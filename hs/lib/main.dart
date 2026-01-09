@@ -36,6 +36,7 @@ import 'features/homes/presentation/home_page.dart';
 import 'features/chores/presentation/pages/chores_page.dart';
 import 'features/chores/presentation/pages/create_chore_page.dart';
 import 'features/chores/presentation/pages/chores_ranking_page.dart';
+import 'features/chores/presentation/pages/notification_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -196,6 +197,7 @@ class MyApp extends StatelessWidget {
         '/bulletin_board': (context) => const BulletinBoardPage(),
         '/profile': (context) => const ProfilePage(),
         '/add_bulletin': (context) => const AddBulletinPage(),
+        '/notifications': (context) => const NotificationPage(),
       },
       
     // onGenerateRoute: (settings) => MaterialPageRoute(

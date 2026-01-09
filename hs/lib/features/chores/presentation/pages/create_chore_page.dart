@@ -7,11 +7,14 @@ import '../widgets/chore_widgets.dart';
 import '../../../../core/widgets/housepal_bottom_nav.dart';
 import 'create_chore_success_page.dart';
 import '../../data/datasources/chore_service.dart';
+import '../../data/models/chore_model.dart';
 
 enum RepeatFrequency { none, daily, monthly, yearly }
 
 class CreateChorePage extends StatefulWidget {
-  const CreateChorePage({super.key});
+  final ChoreModel? chore;
+
+  const CreateChorePage({super.key, this.chore});
 
   @override
   State<CreateChorePage> createState() => _CreateChorePageState();
@@ -32,22 +35,36 @@ class _CreateChorePageState extends State<CreateChorePage> {
 
   RepeatFrequency _frequency = RepeatFrequency.none;
   int _points = 0;
-  bool _autoRotate = false;
 
-  /// ===== MEMBERS (REALTIME) =====
+  List<String> _rotationOrder = [];
+  
+  bool _autoRotate = false;
   List<UserModel> _houseMembers = [];
   Map<String, bool> _selectedMembers = {};
   String? _assignedMemberUid;
-
   bool _loadingMembers = true;
 
   @override
   void initState() {
     super.initState();
     _loadHouseMembers();
-  }
 
-  /* ================= LOAD MEMBERS ================= */
+    if (widget.chore != null) {
+      final c = widget.chore!;
+      _nameController.text = c.title;
+      _descriptionController.text = c.description;
+      _points = c.points;
+      _pointsController.text = _points.toString();
+      _start = c.startDate;
+      _end = c.startDate.add(const Duration(hours: 1)); 
+      _frequency = RepeatFrequency.values.firstWhere(
+        (e) => e.name == c.repeatType,
+        orElse: () => RepeatFrequency.none,
+      );
+      _autoRotate = c.groupOrder.length > 1;
+      _rotationOrder = List.from(c.groupOrder); 
+    }
+  }
 
   Future<void> _loadHouseMembers() async {
     final uid = _auth.currentUser!.uid;
@@ -62,29 +79,51 @@ class _CreateChorePageState extends State<CreateChorePage> {
       final users =
           snapshot.docs.map((e) => UserModel.fromMap(e.data())).toList();
 
+      if (!mounted) return;
+
       setState(() {
         _houseMembers = users;
         _loadingMembers = false;
-        for (final u in users) {
-          _selectedMembers.putIfAbsent(u.uid, () => true);
+
+        final isEdit = widget.chore != null;
+        final chore = widget.chore;
+
+
+        if (isEdit) {
+           // Sync selectedMembers with rotationOrder
+           for (var u in users) {
+             _selectedMembers[u.uid] = _rotationOrder.contains(u.uid);
+           }
+           if (!_autoRotate && chore!.groupOrder.isNotEmpty) {
+             _assignedMemberUid = chore.groupOrder.first;
+           }
+        } else {
+
+          for (var u in users) {
+            _selectedMembers[u.uid] = true;
+            if (!_rotationOrder.contains(u.uid)) {
+              _rotationOrder.add(u.uid);
+            }
+          }
+
+           if (users.isNotEmpty) _assignedMemberUid = users.first.uid;
         }
       });
     });
   }
 
-  /* ================= HELPERS ================= */
 
-  String _frequencyLabel(RepeatFrequency f) {
-    switch (f) {
-      case RepeatFrequency.none:
-        return 'Không lặp lại';
-      case RepeatFrequency.daily:
-        return 'Hàng ngày';
-      case RepeatFrequency.monthly:
-        return 'Hàng tháng';
-      case RepeatFrequency.yearly:
-        return 'Hàng năm';
-    }
+  void _toggleMember(String uid, bool? selected) {
+    setState(() {
+      _selectedMembers[uid] = selected ?? false;
+      if (selected == true) {
+        if (!_rotationOrder.contains(uid)) {
+          _rotationOrder.add(uid);
+        }
+      } else {
+        _rotationOrder.remove(uid);
+      }
+    });
   }
 
   String _formatDate(DateTime d) =>
@@ -100,325 +139,480 @@ class _CreateChorePageState extends State<CreateChorePage> {
     });
   }
 
-  String _buildOrderText() {
-    final order = _houseMembers
-        .where((u) => _selectedMembers[u.uid] == true)
-        .map((u) => u.name)
-        .toList();
-    return order.isEmpty ? 'Chưa chọn thành viên' : order.join(' ➝ ');
-  }
-
-  /* ================= CREATE ================= */
-
   Future<void> _createChore() async {
-    final selectedUids = _autoRotate
-        ? _houseMembers
-            .where((u) => _selectedMembers[u.uid] == true)
-            .map((u) => u.uid)
-            .toList()
-        : [_assignedMemberUid!];
 
-    if (selectedUids.isEmpty) return;
+    List<String> finalGroupOrder = [];
+    
+    if (_autoRotate) {
+      if (_rotationOrder.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng chọn ít nhất 1 thành viên')));
+        return;
+      }
+      finalGroupOrder = _rotationOrder;
+    } else {
+      if (_assignedMemberUid == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng phân công cho 1 thành viên')));
+        return;
+      }
+      finalGroupOrder = [_assignedMemberUid!];
+    }
 
-    await _choreService.createChore(
-      title: _nameController.text.trim(),
-      description: _descriptionController.text.trim(),
-      repeatType: _frequency.name,
-      points: _points,
-      groupOrder: selectedUids,
-      startDate: _start,
-    );
+    if (_nameController.text.isEmpty) {
+       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập tên việc nhà')));
+       return;
+    }
 
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const CreateChoreSuccessPage()),
+
+    if (widget.chore != null) {
+      await _choreService.updateChore(
+        choreId: widget.chore!.id,
+        title: _nameController.text.trim(),
+        description: _descriptionController.text.trim(),
+        repeatType: _frequency.name,
+        points: _points,
+        groupOrder: finalGroupOrder,
+        startDate: _start,
+        currentGroupId: !_autoRotate ? finalGroupOrder.first : null,
       );
+      if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã cập nhật việc nhà!')));
+         Navigator.pop(context);
+      }
+    } else {
+      await _choreService.createChore(
+        title: _nameController.text.trim(),
+        description: _descriptionController.text.trim(),
+        repeatType: _frequency.name,
+        points: _points,
+        groupOrder: finalGroupOrder,
+        startDate: _start,
+      );
+      if (mounted) {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CreateChoreSuccessPage()));
+      }
     }
   }
 
-  /* ================= UI ================= */
-
   @override
   Widget build(BuildContext context) {
-    final orderText = _buildOrderText();
-
     return Scaffold(
-      backgroundColor: kBackground,
+      backgroundColor: Colors.white,
+
+
       appBar: AppBar(
-        backgroundColor: kBackground,
+        title: const Text('Tạo việc nhà mới', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black)),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
-        ),
-        centerTitle: true,
-        title: const Text(
-          'Tạo việc nhà mới',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
         ),
       ),
       body: _loadingMembers
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              children: [
-                _InputCard(
-                  label: 'Tên việc nhà',
-                  child: TextField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(
-                      hintText: 'Ví dụ: Vệ sinh tủ lạnh',
-                      border: InputBorder.none,
-                    ),
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildLabel('Tên việc nhà'),
+                  _buildTextField(
+                    controller: _nameController, 
+                    hint: 'Ví dụ: Rửa bát, Đổ rác,...'
                   ),
-                ),
-                const SizedBox(height: 12),
+                  const SizedBox(height: 16),
 
-                _InputCard(
-                  label: 'Mô tả (Tùy chọn)',
-                  child: TextField(
-                    controller: _descriptionController,
-                    maxLines: 3,
-                    decoration:
-                        const InputDecoration(border: InputBorder.none),
+                  _buildLabel('Mô tả (Tùy chọn)'),
+                  _buildTextField(
+                    controller: _descriptionController, 
+                    hint: 'Ví dụ: Rửa sạch bát đũa sau bữa tối...',
+                    maxLines: 3
                   ),
-                ),
-                const SizedBox(height: 12),
+                  const SizedBox(height: 16),
 
-                Row(
-                  children: [
-                    Expanded(
-                      child: _InputCard(
-                        label: 'Ngày thực hiện',
-                        child: InkWell(
-                          onTap: () async {
-                            final d = await showDatePicker(
-                              context: context,
-                              initialDate: _start,
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime(2030),
-                            );
-                            if (d != null) {
-                              setState(() {
-                                _start = DateTime(d.year, d.month, d.day,
-                                    _start.hour, _start.minute);
-                                _end = DateTime(d.year, d.month, d.day,
-                                    _end.hour, _end.minute);
-                              });
-                            }
-                          },
-                          child: Row(
-                            children: [
-                              Expanded(child: Text(_formatDate(_start))),
-                              const Icon(Icons.calendar_today_outlined,
-                                  size: 18),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _InputCard(
-                        label: 'Khung giờ làm việc',
-                        child: InkWell(
-                          onTap: () async {
-                            final s = await showTimePicker(
-                                context: context,
-                                initialTime:
-                                    TimeOfDay.fromDateTime(_start));
-                            final e = await showTimePicker(
-                                context: context,
-                                initialTime: TimeOfDay.fromDateTime(_end));
-                            if (s != null && e != null) {
-                              setState(() {
-                                _start = DateTime(_start.year, _start.month,
-                                    _start.day, s.hour, s.minute);
-                                _end = DateTime(_end.year, _end.month,
-                                    _end.day, e.hour, e.minute);
-                              });
-                            }
-                          },
-                          child: Row(
-                            children: [
-                              Expanded(child: Text(_formatTime(_start, _end))),
-                              const Icon(Icons.access_time, size: 18),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                _InputCard(
-                  label: 'Tần suất lặp lại',
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<RepeatFrequency>(
-                      value: _frequency,
-                      isExpanded: true,
-                      items: RepeatFrequency.values
-                          .map((f) => DropdownMenuItem(
-                                value: f,
-                                child: Text(_frequencyLabel(f)),
-                              ))
-                          .toList(),
-                      onChanged: (v) => setState(() => _frequency = v!),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                _InputCard(
-                  label: 'Điểm',
-                  child: Row(
+                  Row(
                     children: [
-                      _StepButton(
-                          icon: Icons.remove,
-                          onTap: () => _changePoints(-1)),
                       Expanded(
-                        child: TextField(
-                          controller: _pointsController,
-                          textAlign: TextAlign.center,
-                          keyboardType: TextInputType.number,
-                          decoration:
-                              const InputDecoration(border: InputBorder.none),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLabel('Ngày thực hiện'),
+                            _buildDatePicker(),
+                          ],
                         ),
                       ),
-                      _StepButton(
-                          icon: Icons.add,
-                          onTap: () => _changePoints(1)),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                /// AUTO ROTATE
-                Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEAFBF3),
-                    borderRadius: kCardRadius,
-                  ),
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.sync, color: kPrimaryGreen),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Text(
-                              'Tự động xoay vòng',
-                              style: TextStyle(
-                                  fontSize: 15, fontWeight: FontWeight.w700),
-                            ),
-                          ),
-                          Switch(
-                              value: _autoRotate,
-                              onChanged: (v) =>
-                                  setState(() => _autoRotate = v)),
-                        ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLabel('Khung giờ làm việc'),
+                            _buildTimePicker(),
+                          ],
+                        ),
                       ),
-                      if (_autoRotate) ...[
-                        const SizedBox(height: 12),
-                        ..._houseMembers.map((u) {
-                          return CheckboxListTile(
-                            value: _selectedMembers[u.uid],
-                            title: Text(u.name),
-                            onChanged: (v) =>
-                                setState(() => _selectedMembers[u.uid] = v!),
-                            controlAffinity:
-                                ListTileControlAffinity.leading,
-                          );
-                        }),
-                        Text('Thứ tự xoay vòng: $orderText'),
-                      ]
                     ],
                   ),
-                ),
+                  const SizedBox(height: 16),
 
-                if (!_autoRotate) ...[
-                  const SizedBox(height: 12),
-                  _InputCard(
-                    label: 'Phân công cho',
+                  _buildLabel('Tần suất lặp lại'),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _assignedMemberUid,
-                        hint: const Text('Chọn thành viên'),
+                      child: DropdownButton<RepeatFrequency>(
+                        value: _frequency,
                         isExpanded: true,
-                        items: _houseMembers
-                            .map((u) => DropdownMenuItem(
-                                  value: u.uid,
-                                  child: Text(u.name),
+                        icon: const Icon(Icons.keyboard_arrow_down),
+                        items: RepeatFrequency.values
+                            .map((f) => DropdownMenuItem(
+                                  value: f,
+                                  child: Text(_frequencyLabel(f), style: const TextStyle(fontWeight: FontWeight.w600)),
                                 ))
                             .toList(),
-                        onChanged: (v) =>
-                            setState(() => _assignedMemberUid = v),
+                        onChanged: (v) => setState(() => _frequency = v!),
                       ),
                     ),
                   ),
-                ],
+                  const SizedBox(height: 16),
 
-                const SizedBox(height: 20),
-                SizedBox(
-                  height: 52,
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _createChore,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: kPrimaryGreen,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                  _buildLabel('Điểm'),
+                  _buildPointsStepper(),
+                  const SizedBox(height: 24),
+
+
+                  _buildRotationSection(),
+                  
+                  const SizedBox(height: 16),
+                  
+
+                  if (!_autoRotate) ...[
+                     _buildLabel('Phân công cho'),
+                     Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _assignedMemberUid,
+                            hint: const Text('Chọn thành viên'),
+                            isExpanded: true,
+                            icon: const Icon(Icons.keyboard_arrow_down),
+                            items: _houseMembers
+                                .map((u) => DropdownMenuItem(
+                                      value: u.uid,
+                                      child: Text(u.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                    ))
+                                .toList(),
+                            onChanged: (v) => setState(() => _assignedMemberUid = v),
+                          ),
+                        ),
+                      ),
+                  ],
+
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: _createChore,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF00E676),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        widget.chore != null ? 'Lưu thay đổi' : 'Tạo việc nhà',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
                       ),
                     ),
-                    child: const Text(
-                      'Tạo việc nhà',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black, 
+                  ),
+                  const SizedBox(height: 32),
+                ],
+              ),
+            ),
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(text, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF5E6C84))),
+    );
+  }
+
+  Widget _buildTextField({required TextEditingController controller, String? hint, int maxLines = 1}) {
+    return  TextField(
+      controller: controller,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(color: Colors.grey.shade400),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: kPrimaryGreen),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDatePicker() {
+    return InkWell(
+      onTap: () async {
+        final d = await showDatePicker(
+          context: context,
+          initialDate: _start,
+          firstDate: DateTime(2020),
+          lastDate: DateTime(2030),
+        );
+        if (d != null) {
+          setState(() {
+            _start = DateTime(d.year, d.month, d.day, _start.hour, _start.minute);
+            _end = DateTime(d.year, d.month, d.day, _end.hour, _end.minute);
+          });
+        }
+      },
+      child: Container(
+        height: 50,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(_formatDate(_start), style: const TextStyle(fontWeight: FontWeight.w600)),
+            const Icon(Icons.calendar_today_outlined, size: 20, color: Colors.grey),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimePicker() {
+    return InkWell(
+      onTap: () async {
+        final s = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(_start));
+        final e = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(_end));
+        if (s != null && e != null) {
+           setState(() {
+              _start = DateTime(_start.year, _start.month, _start.day, s.hour, s.minute);
+              _end = DateTime(_end.year, _end.month, _end.day, e.hour, e.minute);
+           });
+        }
+      },
+      child: Container(
+        height: 50,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('${_start.hour}:${_start.minute.toString().padLeft(2,'0')} → ${_end.hour}:${_end.minute.toString().padLeft(2,'0')}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            const Icon(Icons.access_time, size: 20, color: Colors.grey),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPointsStepper() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _StepButton(icon: Icons.remove, onTap: () => _changePoints(-1)),
+          Text(_points.toString(), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          _StepButton(icon: Icons.add, onTap: () => _changePoints(1)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRotationSection() {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE5F8ED),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+               Container(
+                 padding: const EdgeInsets.all(8),
+                 decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                 child: const Icon(Icons.sync, color: kPrimaryGreen),
+               ),
+               const SizedBox(width: 12),
+               const Expanded(
+                 child: Column(
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                      Text('Tự động xoay vòng', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text('Tự động phân công cho người tiếp theo', style: TextStyle(fontSize: 12, color: kPrimaryGreen)),
+                   ],
+                 ),
+               ),
+               Switch(
+                 value: _autoRotate,
+                 onChanged: (v) => setState(() => _autoRotate = v),
+                 activeColor: Colors.black,
+                 activeTrackColor: Colors.white,
+               ),
+            ],
+          ),
+          
+          if (_autoRotate) ...[
+            const SizedBox(height: 20),
+            const Text('Chọn thành viên tham gia xoay vòng', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            
+
+            ..._houseMembers.map((u) {
+              final isChecked = _selectedMembers[u.uid] == true;
+              return InkWell(
+                onTap: () => _toggleMember(u.uid, !isChecked),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      Icon(
+                        isChecked ? Icons.check_box : Icons.check_box_outline_blank,
+                        color: isChecked ? const Color(0xFF00E676) : Colors.grey,
                       ),
-                    ),
+                      const SizedBox(width: 12),
+                      Text(u.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                    ],
                   ),
                 ),
+              );
+            }),
+
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                const Text('Thứ tự xoay vòng:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Spacer(),
+                if (_rotationOrder.length > 1)
+                  const Text('(Kéo để sắp xếp)', style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic)),
               ],
             ),
-      bottomNavigationBar: const HousePalBottomNav(currentIndex: 1),
+            const SizedBox(height: 8),
+            
+
+            if (_rotationOrder.isNotEmpty)
+              Container(
+                 padding: const EdgeInsets.all(12),
+                 decoration: BoxDecoration(
+                   color: Colors.white,
+                   borderRadius: BorderRadius.circular(12),
+                 ),
+                 child: ReorderableListView(
+                   physics: const NeverScrollableScrollPhysics(),
+                   shrinkWrap: true,
+                   onReorder: (oldIndex, newIndex) {
+                     setState(() {
+                       if (oldIndex < newIndex) {
+                         newIndex -= 1;
+                       }
+                       final item = _rotationOrder.removeAt(oldIndex);
+                       _rotationOrder.insert(newIndex, item);
+                     });
+                   },
+                   children: _rotationOrder.map((uid) {
+                     final user = _houseMembers.firstWhere((u) => u.uid == uid, orElse: () => UserModel(
+                            uid: uid,
+                            name: 'Unknown',
+                            email: '',
+                            phoneNumber: '',
+                            avatarUrl: '',
+                            createdAt: DateTime.now(),
+                          ));
+                     return ListTile(
+                       key: ValueKey(uid),
+                       leading: CircleAvatar(
+                          backgroundImage: user.avatarUrl.isNotEmpty ? AssetImage(user.avatarUrl) : const AssetImage('lib/core/assets/avatars/meo3.jpg') as ImageProvider,
+                          radius: 16,
+                       ),
+                       title: Text(user.name),
+                       trailing: const Icon(Icons.drag_handle, color: Colors.grey),
+                       dense: true,
+                       contentPadding: EdgeInsets.zero,
+                     );
+                   }).toList(),
+                 ),
+              ),
+              
+            const SizedBox(height: 8),
+            if (_rotationOrder.isNotEmpty)
+               Wrap(
+                 spacing: 4,
+                 crossAxisAlignment: WrapCrossAlignment.center,
+                  children: _rotationOrder.asMap().entries.map((entry) {
+                     final uid = entry.value;
+                     final isLast = entry.key == _rotationOrder.length - 1;
+                     final user = _houseMembers.firstWhere((u) => u.uid == uid, orElse: () => UserModel(
+                             uid: uid,
+                             name: '?',
+                             email: '',
+                             phoneNumber: '',
+                             avatarUrl: '',
+                             createdAt: DateTime.now(),
+                           ));
+                     return Row(
+                       mainAxisSize: MainAxisSize.min,
+                       children: [
+                         Text(user.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                         if (!isLast) const Icon(Icons.arrow_right_alt, size: 16, color: Colors.grey),
+                       ],
+                     );
+                  }).toList(),
+               ),
+          ],
+        ],
+      ),
     );
   }
-}
 
-/* ================= UI HELPERS ================= */
-
-class _InputCard extends StatelessWidget {
-  const _InputCard({required this.label, required this.child});
-  final String label;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style:
-                const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: kCardBackground,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFE3E5EA)),
-          ),
-          child: child,
-        ),
-      ],
-    );
+  String _frequencyLabel(RepeatFrequency f) {
+    switch (f) {
+      case RepeatFrequency.none: return 'Không lặp lại';
+      case RepeatFrequency.daily: return 'Hàng ngày';
+      case RepeatFrequency.monthly: return 'Hàng tháng';
+      case RepeatFrequency.yearly: return 'Hàng năm';
+    }
   }
+
+
+
 }
 
 class _StepButton extends StatelessWidget {
@@ -428,16 +622,16 @@ class _StepButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
       child: Container(
-        width: 32,
-        height: 32,
+        width: 36,
+        height: 36,
         decoration: const BoxDecoration(
-          color: Color(0xFFE7F1E9),
+          color: Color(0xFFC8E6C9),
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, size: 18, color: kPrimaryGreen),
+        child: Icon(icon, color: kPrimaryGreen),
       ),
     );
   }

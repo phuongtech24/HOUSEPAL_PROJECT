@@ -5,13 +5,12 @@ import '../../../../core/widgets/housepal_bottom_nav.dart';
 import '../data/datasources/home_service.dart';
 import '../data/models/home_model.dart';
 import '../../chores/presentation/pages/chores_ranking_page.dart';
+import '../../authentication/data/models/user_model.dart';
 
 
 // ... (imports remain the same)
 
-// Remove constant colors that might clash
-// const Color _greyText = Color(0xFF8B8E98); // Use generic grey or theme caption
-const double _cardRadius = 16;
+
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -25,6 +24,7 @@ class _HomePageState extends State<HomePage> {
 
   HomeSummaryModel? _summary;
   List<HomeActivityModel> _activities = [];
+  UserModel? _currentUser;
   bool _loading = true;
 
   @override
@@ -36,11 +36,13 @@ class _HomePageState extends State<HomePage> {
   Future<void> _loadData() async {
     final summary = await _homeService.getHomeSummary();
     final activities = await _homeService.getRecentActivities();
+    final user = await _homeService.getCurrentUser();
 
     if (!mounted) return;
     setState(() {
       _summary = summary;
       _activities = activities;
+      _currentUser = user;
       _loading = false;
     });
   }
@@ -58,76 +60,189 @@ class _HomePageState extends State<HomePage> {
     }
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor, // [FIX] Dynamic background
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       bottomNavigationBar: const HousePalBottomNav(currentIndex: 0),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+        child: _currentUser?.role == 'admin' || _currentUser?.role == 'owner'
+            ? _buildAdminHome(context)
+            : _buildMemberInfoHome(context),
+      ),
+    );
+  }
+
+
+  Widget _buildAdminHome(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _buildHeader(context),
+        const SizedBox(height: 24),
+
+        Text(
+          'Quản lý Nhà',
+          style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Theme.of(context).textTheme.bodyLarge?.color),
+        ),
+        const SizedBox(height: 16),
+        _buildAdminGrid(context),
+        const SizedBox(height: 24),
+        Text(
+          'Hoạt động gần đây',
+          style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Theme.of(context).textTheme.bodyLarge?.color),
+        ),
+        const SizedBox(height: 12),
+        _buildRecentNews(context),
+      ],
+    );
+  }
+
+  Widget _buildAdminGrid(BuildContext context) {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 2,
+      crossAxisSpacing: 16,
+      mainAxisSpacing: 16,
+      childAspectRatio: 1.3,
+      children: [
+        _adminCard(context, 'Thành viên', Icons.people_outline, Colors.blue,
+            () => Navigator.pushNamed(context, '/members')),
+        _adminCard(context, 'Duyệt việc', Icons.check_circle_outline, Colors.orange,
+            () {}),
+        _adminCard(context, 'Tài chính', Icons.attach_money, Colors.green,
+            () => Navigator.pushNamed(context, '/expenses')),
+        _adminCard(context, 'Cài đặt', Icons.settings_outlined, Colors.grey,
+            () => Navigator.pushNamed(context, '/settings')),
+      ],
+    );
+  }
+
+  Widget _adminCard(BuildContext context, String title, IconData icon, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildHeader(context), // Pass context for theme access
-            const SizedBox(height: 16),
-            Text(
-              'Tổng quan của bạn',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Theme.of(context).textTheme.bodyLarge?.color),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 28),
             ),
             const SizedBox(height: 12),
-            _buildSummaryCards(context),
-            const SizedBox(height: 16),
-            _buildTodayChores(context),
-            const SizedBox(height: 16),
-            _buildFinanceOverview(context),
-            const SizedBox(height: 16),
-            _buildRecentNews(context),
-            const SizedBox(height: 20),
-            _buildMonthlyStarButton(context),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
       ),
     );
   }
 
-  // ================= HEADER =================
+
+  Widget _buildMemberInfoHome(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      children: [
+        _buildHeader(context),
+        const SizedBox(height: 16),
+        Text(
+          'Tổng quan của bạn',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Theme.of(context).textTheme.bodyLarge?.color),
+        ),
+        const SizedBox(height: 12),
+        _buildSummaryCards(context),
+        const SizedBox(height: 16),
+        _buildTodayChores(context),
+        const SizedBox(height: 16),
+        _buildFinanceOverview(context),
+        const SizedBox(height: 16),
+        _buildRecentNews(context),
+        const SizedBox(height: 20),
+        _buildMonthlyStarButton(context),
+      ],
+    );
+  }
+
+
 
   Widget _buildHeader(BuildContext context) {
-    // Dynamic text color
-    final titleColor = Theme.of(context).textTheme.bodyLarge?.color;
-    final subtitleColor = Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
-
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        CircleAvatar(
-          radius: 24,
-          backgroundColor: Theme.of(context).cardColor, // [FIX] Dynamic bg
-          child: Icon(Icons.person, size: 28, color: titleColor), // [FIX] Dynamic icon color
+        Row(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.black, width: 2),
+              ),
+              child: CircleAvatar(
+                radius: 26,
+                backgroundColor: Colors.white,
+                backgroundImage: _currentUser?.avatarUrl != null && _currentUser!.avatarUrl.isNotEmpty
+                    ? NetworkImage(_currentUser!.avatarUrl)
+                    : const AssetImage('lib/core/assets/avatars/meo3.jpg') as ImageProvider,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'Xin chào, ${_currentUser?.name ?? "Bạn"}! 👋',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Chào mừng bạn đến với HousePal',
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+              ],
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Xin chào! 👋',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: titleColor),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Chào mừng bạn đến với HousePal',
-                style: TextStyle(fontSize: 13, color: subtitleColor),
-              ),
-            ],
+        Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.black, width: 1.5),
           ),
-        ),
-        IconButton(
-          icon: Icon(Icons.notifications_none_outlined, color: titleColor),
-          onPressed: () =>
-              Navigator.pushNamed(context, '/notifications'),
+          child: IconButton(
+            icon: const Icon(Icons.notifications_none, color: Colors.black),
+            onPressed: () => Navigator.pushNamed(context, '/notifications'),
+          ),
         ),
       ],
     );
   }
 
-  // ================= SUMMARY =================
+
 
   Widget _buildSummaryCards(BuildContext context) {
     return Row(
@@ -135,17 +250,19 @@ class _HomePageState extends State<HomePage> {
         Expanded(
           child: _summaryCard(
             context: context,
-            icon: Icons.event_available_outlined,
-            value: _summary!.todayChores.toString(),
+            icon: Icons.assignment_outlined,
+            iconColor: const Color(0xFF00D26A),
+            value: _summary!.todayChores.length.toString(),
             label: 'Việc hôm nay',
             onTap: () => Navigator.pushNamed(context, '/chores'),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 16),
         Expanded(
           child: _summaryCard(
             context: context,
-            icon: Icons.star_border,
+            icon: Icons.star_border_rounded,
+            iconColor: const Color(0xFF00D26A),
             value: _summary!.monthPoints.toString(),
             label: 'Điểm tháng này',
             onTap: () => Navigator.pushNamed(context, '/chores-ranking'),
@@ -158,39 +275,54 @@ class _HomePageState extends State<HomePage> {
   Widget _summaryCard({
     required BuildContext context,
     required IconData icon,
+    required Color iconColor,
     required String value,
     required String label,
     required VoidCallback onTap,
   }) {
-    final cardColor = Theme.of(context).cardTheme.color ?? Colors.white;
-    final borderColor = Theme.of(context).dividerTheme.color ?? const Color(0xFFE3E5EA);
-    final textColor = Theme.of(context).textTheme.bodyLarge?.color;
-    final subTextColor = Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
-
     return InkWell(
-      borderRadius: BorderRadius.circular(_cardRadius),
       onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
       child: Container(
+        height: 120,
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: cardColor, // [FIX] Dynamic background
-          borderRadius: BorderRadius.circular(_cardRadius),
-          border: Border.all(color: borderColor),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFE3E5EA)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(icon, color: AppColors.primary, size: 24),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: TextStyle(
-                  fontSize: 22, fontWeight: FontWeight.w700, color: textColor),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(fontSize: 13, color: subTextColor),
+            Icon(icon, color: iconColor, size: 28),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.black,
+                  ),
+                ),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -198,72 +330,177 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ================= TODAY CHORES =================
 
   Widget _buildTodayChores(BuildContext context) {
-    final cardColor = Theme.of(context).cardTheme.color ?? Colors.white;
-    final textColor = Theme.of(context).textTheme.bodyLarge?.color;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionHeader(
-          context,
-          'Việc của bạn hôm nay',
-          onViewAll: () => Navigator.pushNamed(context, '/chores'),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: cardColor, // [FIX] Dynamic
-            borderRadius: BorderRadius.circular(_cardRadius),
+    if (_summary == null) return const SizedBox.shrink();
+    
+    final chores = _summary!.todayChores.take(3).toList();
+    
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Text(
-            'Bạn có ${_summary!.todayChores} việc đang chờ',
-            style: TextStyle(fontSize: 14, color: textColor),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Việc của bạn hôm nay',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.black,
+                ),
+              ),
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/chores'),
+                child: const Text(
+                  'Xem tất cả',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF00D26A),
+                  ),
+                ),
+              )
+            ],
           ),
-        ),
-      ],
+          const SizedBox(height: 16),
+          if (chores.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text('Bạn đã hoàn thành hết việc hôm nay!', style: TextStyle(color: Colors.grey)),
+            )
+          else
+            ...chores.map((chore) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFFE3E5EA), width: 1.5),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      chore.title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )),
+          
+          if (chores.isNotEmpty) ...[
+             const SizedBox(height: 8),
+             Row(
+                children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFF00D26A),
+                    ),
+                    child: const Icon(Icons.check, size: 16, color: Colors.white),
+                  ),
+                  const SizedBox(width: 12),
+                   const Text(
+                      'Đổ rác',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF9EA3AE),
+                        decoration: TextDecoration.lineThrough,
+                        decorationColor: Color(0xFF9EA3AE),
+                      ),
+                    ),
+                ],
+             ),
+          ]
+        ],
+      ),
     );
   }
 
-  // ================= FINANCE =================
+
 
   Widget _buildFinanceOverview(BuildContext context) {
-    final cardColor = Theme.of(context).cardTheme.color ?? Colors.white;
-    final textColor = Theme.of(context).textTheme.bodyLarge?.color;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionHeader(
-          context,
-          'Tổng quan tài chính',
-          onViewAll: () => Navigator.pushNamed(context, '/expenses'),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: cardColor, // [FIX] Dynamic
-            borderRadius: BorderRadius.circular(_cardRadius),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-          child: Row(
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _financeCol(context, 'Bạn nợ', _summary!.debt, Colors.red),
-              Container(width: 1, height: 40, color: Theme.of(context).dividerTheme.color ?? const Color(0xFFE3E5EA)),
-              const SizedBox(width: 16),
+              const Text(
+                'Tổng quan tài chính',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.black,
+                ),
+              ),
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/expenses'),
+                child: const Text(
+                  'Xem tất cả',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF00D26A),
+                  ),
+                ),
+              )
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              _financeCol(context, 'Bạn nợ', _summary!.debt, const Color(0xFFFF3B30)),
+              Container(width: 1, height: 40, color: const Color(0xFFE3E5EA)),
+              const SizedBox(width: 24),
               _financeCol(
                 context,
                 'Nợ bạn',
                 _summary!.credit,
-                AppColors.primary,
+                const Color(0xFF00D26A),
               ),
             ],
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -273,13 +510,13 @@ class _HomePageState extends State<HomePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label,
-              style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey)),
-          const SizedBox(height: 6),
+              style: const TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
           Text(
             NumberFormat.currency(locale: 'vi_VN', symbol: 'đ')
                 .format(value),
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 20,
               fontWeight: FontWeight.w700,
               color: color,
             ),
@@ -289,103 +526,122 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ================= ACTIVITY =================
+
 
   Widget _buildRecentNews(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionHeader(
-          context,
-          'Hoạt động gần đây',
-          onViewAll: () =>
-              Navigator.pushNamed(context, '/notifications'),
-        ),
-        const SizedBox(height: 12),
-        ..._activities.map(
-          (e) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _ActivityItem(
-              title: e.title,
-              action: e.subtitle,
-              time: DateFormat('dd/MM HH:mm').format(e.createdAt),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Bảng tin gần đây',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.black,
+                ),
+              ),
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/bulletin_board'),
+                child: const Text(
+                  'Xem tất cả',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF00D26A),
+                  ),
+                ),
+              )
+            ],
+          ),
+          const SizedBox(height: 16),
+          ..._activities.map(
+            (e) => Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: _ActivityItem(
+                title: e.title,
+                action: e.subtitle,
+                time: DateFormat('dd/MM HH:mm').format(e.createdAt),
+              ),
             ),
           ),
-        ),
-      ],
+          if (_activities.isEmpty) ...[
+             const _ActivityItem(
+              title: 'Họp nhà khẩn cấp tối nay',
+              action: 'bởi Admin',
+              time: '1 giờ trước',
+             ),
+             const SizedBox(height: 16),
+             const _ActivityItem(
+              title: 'Nhắc nhở đóng tiền mạng tháng 12',
+              action: 'bởi Admin',
+              time: '1 ngày trước',
+             ),
+          ]
+        ],
+      ),
     );
   }
 
   Widget _buildMonthlyStarButton(BuildContext context) {
-    return SizedBox(
-      height: 52,
+    return Container(
       width: double.infinity,
-      child: ElevatedButton(
-        style: Theme.of(context).elevatedButtonTheme.style?.copyWith(
-           shape: MaterialStateProperty.all(RoundedRectangleBorder(
-             borderRadius: BorderRadius.circular(18),
-           ))
-        ) ?? ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+      height: 56,
+      decoration: BoxDecoration(
+        color: const Color(0xFF00D26A),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+           BoxShadow(
+            color: const Color(0xFF00D26A).withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
-        ),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const ChoresRankingPage(),
-            ),
-          );
-        },
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.emoji_events_outlined, size: 20),
-            SizedBox(width: 8),
-            Text('Người xuất sắc tháng này', style: TextStyle(fontWeight: FontWeight.bold)),
-          ],
+        ]
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const ChoresRankingPage(),
+              ),
+            );
+          },
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.emoji_events_outlined, size: 24, color: Colors.white),
+              SizedBox(width: 8),
+              Text(
+                'Người xuất sắc tháng này', 
+                style: TextStyle(
+                  fontWeight: FontWeight.w700, 
+                  color: Colors.white,
+                  fontSize: 16,
+                )
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
 
-  Widget _buildSectionHeader(BuildContext context, String title, {VoidCallback? onViewAll}) {
-    return Row(
-      children: [
-        Text(
-          title,
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Theme.of(context).textTheme.bodyLarge?.color),
-        ),
-        const Spacer(),
-        if (onViewAll != null)
-          GestureDetector(
-            onTap: onViewAll,
-            child: Row(
-              children: const [
-                Text(
-                  'Xem tất cả',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
-                  ),
-                ),
-                SizedBox(width: 4),
-                Icon(Icons.chevron_right,
-                    size: 16, color: AppColors.primary),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
 }
 
-// ================= ACTIVITY ITEM =================
+
 
 class _ActivityItem extends StatelessWidget {
   const _ActivityItem({
@@ -400,65 +656,31 @@ class _ActivityItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cardColor = Theme.of(context).cardTheme.color ?? Colors.white;
-    final borderColor = Theme.of(context).dividerTheme.color ?? const Color(0xFFE3E5EA);
-    final titleColor = Theme.of(context).textTheme.bodyLarge?.color;
-    // For RichText inside, we need explicit colors
-    
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: const BoxDecoration(
-              color: Color(0xFFE9FBF2),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.check_rounded,
-              color: AppColors.primary,
-              size: 20,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+         Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black,
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 4),
+          RichText(
+            text: TextSpan(
+              style: const TextStyle(fontSize: 13, color: Colors.grey),
               children: [
-                RichText(
-                  text: TextSpan(
-                    style: TextStyle(fontSize: 14, color: titleColor), // [FIX] Dynamic rich text color
-                    children: [
-                      TextSpan(
-                        text: title,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w700),
-                      ),
-                      TextSpan(text: ' $action'),
-                    ],
-                  ),
-                ),
-                if (time.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    time,
-                    style: TextStyle(
-                        fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey),
-                  ),
-                ],
-              ],
-            ),
+                TextSpan(text: action),
+                const TextSpan(text: ' • '),
+                TextSpan(text: time),
+              ]
+            )
           ),
-        ],
-      ),
+          const SizedBox(height: 16),
+          const Divider(height: 1, color: Color(0xFFF2F4F7)),
+      ],
     );
   }
 }

@@ -20,7 +20,7 @@ class AdminHomePage extends StatelessWidget {
             _buildHeader(),
             const SizedBox(height: 16),
 
-            /// ✅ TỔNG QUAN CỦA BẠN (BỊ THIẾU TRƯỚC ĐÓ)
+
             const Text(
               'Tổng quan của bạn',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
@@ -45,7 +45,7 @@ class AdminHomePage extends StatelessWidget {
     );
   }
 
-  /* ================= HEADER ================= */
+
 
   Widget _buildHeader() {
     return Row(
@@ -94,7 +94,7 @@ class AdminHomePage extends StatelessWidget {
     );
   }
 
-  /* ================= SUMMARY ================= */
+
 
   Widget _buildSummaryCards() {
     return Row(
@@ -146,7 +146,7 @@ class AdminHomePage extends StatelessWidget {
     );
   }
 
-  /* ================= TODAY TASKS ================= */
+
 
   Widget _buildTodayTasks() {
     return Column(
@@ -197,7 +197,7 @@ class AdminHomePage extends StatelessWidget {
     );
   }
 
-  /* ================= MEMBERS ================= */
+
 
   Widget _buildMembersOverview() {
     return Column(
@@ -227,7 +227,7 @@ class AdminHomePage extends StatelessWidget {
     );
   }
 
-  /* ================= FINANCE ================= */
+
 
   Widget _buildFinanceOverview() {
     return Column(
@@ -269,7 +269,7 @@ class AdminHomePage extends StatelessWidget {
     );
   }
 
-  /* ================= ACTIVITY ================= */
+
 
   Widget _buildRecentActivities() {
     return Column(
@@ -346,7 +346,7 @@ class AdminHomePage extends StatelessWidget {
   }
 }
 
-/* ================= MEMBER CARD ================= */
+
 
 class _MemberCard extends StatelessWidget {
   const _MemberCard({
