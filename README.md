@@ -32,3 +32,8 @@ main (Nhánh gốc tổng hợp)
 3. 👤 Thành viên: Tuấn (Nhánh gốc: Tuan)
 - feature/chores: Phân công việc nhà, bảng xếp hạng.
 - feature/homes: Dashboard tổng quan.
+
+🚀 Hướng dẫn chạy dự án (How to run)
+Để kiểm tra từng tính năng riêng biệt, vui lòng checkout sang nhánh tương ứng:
+- Chạy Authentication: git checkout feature/authentication
+- Chạy Expenses: git checkout feature/expenses
