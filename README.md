@@ -19,3 +19,8 @@ main (Nhánh gốc tổng hợp)
     ├── 🌿 feature/chores          (Phân công việc nhà)
     └── 🌿 feature/homes           (Màn hình trang chủ/Dashboard)
 └── 👤 Nhánh: dev (nhánh phát triển)
+
+1. 👤 Thành viên: Phương (Nhánh gốc: Phuong)
+- feature/authentication: Login, Register, Firebase Auth.
+- feature/expenses: Quản lý quỹ, chia tiền (Split bill).
+- feature/house_setup: Onboarding, Tạo nhà mới.
