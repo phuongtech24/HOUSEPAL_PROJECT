@@ -28,3 +28,7 @@ main (Nhánh gốc tổng hợp)
 2. 👤 Thành viên: Dũng (Nhánh gốc: Dung)
 - feature/profile: Chỉnh sửa thông tin cá nhân, cài đặt.
 - feature/bulletin_board: Bảng tin chung, ghim tin quan trọng.
+
+3. 👤 Thành viên: Tuấn (Nhánh gốc: Tuan)
+- feature/chores: Phân công việc nhà, bảng xếp hạng.
+- feature/homes: Dashboard tổng quan.
