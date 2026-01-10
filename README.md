@@ -3,7 +3,7 @@ Dự án phát triển ứng dụng mobile bằng Flutter, hỗ trợ quản lý
 ## 👥 Phân công & Cấu trúc Nhánh (Branch Strategy)
 Dự án được chia thành các nhánh lớn theo thành viên (Base Branch). Từ mỗi nhánh thành viên, code được tách nhỏ thành các nhánh tính năng (Feature Branches) độc lập để dễ dàng quản lý và review code.
 
-🗺️ Sơ đồ cây phân nhánh
+🗺️ Sơ đồ cây phân nhánh:
 main (Nhánh gốc tổng hợp)
 │
 ├── 👤 Nhánh: Phuong (Base của Phương)
@@ -44,4 +44,5 @@ Lưu ý: Sau khi chuyển nhánh, hãy chạy lệnh `flutter pub get` để c�
 
 ---
 Developed by HousePal Team - 2025
+
 '''
