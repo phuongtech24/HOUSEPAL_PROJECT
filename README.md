@@ -37,3 +37,7 @@ main (Nhánh gốc tổng hợp)
 Để kiểm tra từng tính năng riêng biệt, vui lòng checkout sang nhánh tương ứng:
 - Chạy Authentication: git checkout feature/authentication
 - Chạy Expenses: git checkout feature/expenses
+
+- Chạy Chores: git checkout feature/chores
+- Chạy Profile: git checkout feature/profile
+Lưu ý: Sau khi chuyển nhánh, hãy chạy lệnh `flutter pub get` để cập nhật thư viện.
