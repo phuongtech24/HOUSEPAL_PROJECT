@@ -1,14 +1,9 @@
 # 🏠 HousePal - Ứng dụng Quản lý Nhà trọ/Chung cư
-
 Dự án phát triển ứng dụng mobile bằng Flutter, hỗ trợ quản lý công việc, chi tiêu và sinh hoạt chung trong ngôi nhà.
-
 ## 👥 Phân công & Cấu trúc Nhánh (Branch Strategy)
-
 Dự án được chia thành các nhánh lớn theo thành viên (Base Branch). Từ mỗi nhánh thành viên, code được tách nhỏ thành các nhánh tính năng (Feature Branches) độc lập để dễ dàng quản lý và review code.
 
-### 🗺️ Sơ đồ cây phân nhánh
-
-```text
+🗺️ Sơ đồ cây phân nhánh
 main (Nhánh gốc tổng hợp)
 │
 ├── 👤 Nhánh: Phuong (Base của Phương)
@@ -25,67 +20,28 @@ main (Nhánh gốc tổng hợp)
     └── 🌿 feature/homes           (Màn hình trang chủ/Dashboard)
 └── 👤 Nhánh: dev (nhánh phát triển)
 
-📋 Chi tiết Phân công nhiệm vụ
-Dưới đây là danh sách các nhánh tính năng được phát triển bởi từng thành viên:
-
 1. 👤 Thành viên: Phương (Nhánh gốc: Phuong)
-feature/authentication:
-
-Xây dựng màn hình Đăng nhập (Login), Đăng ký (Register).
-
-Xử lý logic xác thực với Firebase Auth.
-
-feature/expenses:
-
-Quản lý quỹ chung, thêm khoản chi tiêu mới.
-
-Tính năng chia tiền (Split bill) và tối ưu hóa nợ.
-
-feature/house_setup:
-
-Luồng Onboarding cho người dùng mới.
-
-Chức năng Tạo nhà mới hoặc Tham gia vào nhà có sẵn.
+- feature/authentication: Login, Register, Firebase Auth.
+- feature/expenses: Quản lý quỹ, chia tiền (Split bill).
+- feature/house_setup: Onboarding, Tạo nhà mới.
 
 2. 👤 Thành viên: Dũng (Nhánh gốc: Dung)
-feature/profile:
-
-Hiển thị và chỉnh sửa thông tin cá nhân.
-
-Quản lý cài đặt tài khoản, đăng xuất.
-
-feature/bulletin_board:
-
-Bảng tin chung của nhà.
-
-Tạo thông báo, ghim tin quan trọng cho các thành viên.
+- feature/profile: Chỉnh sửa thông tin cá nhân, cài đặt.
+- feature/bulletin_board: Bảng tin chung, ghim tin quan trọng.
 
 3. 👤 Thành viên: Tuấn (Nhánh gốc: Tuan)
-feature/chores:
-
-Danh sách việc nhà cần làm.
-
-Gán việc cho thành viên, bảng xếp hạng chăm chỉ.
-
-feature/homes:
-
-Màn hình Trang chủ (Dashboard) tổng quan.
-
-Hiển thị tóm tắt trạng thái của ngôi nhà sau khi đăng nhập.
+- feature/chores: Phân công việc nhà, bảng xếp hạng.
+- feature/homes: Dashboard tổng quan.
 
 🚀 Hướng dẫn chạy dự án (How to run)
 Để kiểm tra từng tính năng riêng biệt, vui lòng checkout sang nhánh tương ứng:
+- Chạy Authentication: git checkout feature/authentication
+- Chạy Expenses: git checkout feature/expenses
 
-Chạy Authentication: git checkout feature/authentication
+- Chạy Chores: git checkout feature/chores
+- Chạy Profile: git checkout feature/profile
+Lưu ý: Sau khi chuyển nhánh, hãy chạy lệnh `flutter pub get` để cập nhật thư viện.
 
-Chạy Expenses: git checkout feature/expenses
-
-Chạy Chores: git checkout feature/chores
-
-Chạy Profile: git checkout feature/profile
-
-Lưu ý: Sau khi chuyển nhánh, hãy chạy lệnh flutter pub get để cập nhật thư viện trước khi bấm Run.
-
+---
 Developed by HousePal Team - 2025
-
-
+'''
