@@ -24,3 +24,7 @@ main (Nhánh gốc tổng hợp)
 - feature/authentication: Login, Register, Firebase Auth.
 - feature/expenses: Quản lý quỹ, chia tiền (Split bill).
 - feature/house_setup: Onboarding, Tạo nhà mới.
+
+2. 👤 Thành viên: Dũng (Nhánh gốc: Dung)
+- feature/profile: Chỉnh sửa thông tin cá nhân, cài đặt.
+- feature/bulletin_board: Bảng tin chung, ghim tin quan trọng.
