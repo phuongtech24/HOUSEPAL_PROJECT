@@ -41,3 +41,6 @@ main (Nhánh gốc tổng hợp)
 - Chạy Chores: git checkout feature/chores
 - Chạy Profile: git checkout feature/profile
 Lưu ý: Sau khi chuyển nhánh, hãy chạy lệnh `flutter pub get` để cập nhật thư viện.
+
+---
+Developed by HousePal Team - 2025
