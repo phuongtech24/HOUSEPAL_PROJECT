@@ -145,3 +145,5 @@ class _BulletinBoardPageState extends State<BulletinBoardPage> {
     );
   }
 }
+
+

@@ -152,3 +152,5 @@ class HomeService {
     return activities.take(4).toList();
   }
 }
+
+// Formatting fix

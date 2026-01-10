@@ -679,3 +679,5 @@ class _InfoRow extends StatelessWidget {
     );
   }
 }
+
+// Formatting fix

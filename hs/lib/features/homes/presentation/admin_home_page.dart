@@ -384,3 +384,5 @@ class _MemberCard extends StatelessWidget {
     );
   }
 }
+
+// Formatting fix
