@@ -44,3 +44,4 @@ Lưu ý: Sau khi chuyển nhánh, hãy chạy lệnh `flutter pub get` để c�
 
 ---
 Developed by HousePal Team - 2025
+'''
