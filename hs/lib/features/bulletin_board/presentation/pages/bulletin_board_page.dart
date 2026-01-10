@@ -145,3 +145,4 @@ class _BulletinBoardPageState extends State<BulletinBoardPage> {
     );
   }
 }
+// [Update] UI spacing

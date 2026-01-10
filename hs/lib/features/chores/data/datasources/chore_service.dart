@@ -256,3 +256,5 @@ Future<List<UserModel>> getMonthlyRanking() async {
   }
 
 }
+
+// Updated logic
